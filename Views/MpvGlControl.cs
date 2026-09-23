@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
@@ -32,6 +33,11 @@ public class MpvGlControl : OpenGlControlBase
     private mpv_opengl_init_params _initParams;
     private mpv_opengl_fbo _fbo;
 
+    // Tracking de tamaño para detectar resize y forzar re-render del último
+    // frame (mpv no re-renderiza solo cuando está pausado, hay que pedirle).
+    private int _lastRenderedW, _lastRenderedH;
+    private bool _forceRender;
+
     /// <summary>
     /// Setear el handle de mpv. PlayerView lo llama después de crear el
     /// MpvPlayer. NO crea el render context acá — el GL context no está
@@ -58,6 +64,20 @@ public class MpvGlControl : OpenGlControlBase
         }
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // Cuando cambia el tamaño del control, forzar un re-render del último
+        // frame. Sin esto, si el video está pausado, el FBO nuevo queda en
+        // negro hasta que llega un frame nuevo (que nunca llega porque está
+        // pausado).
+        if (change.Property == BoundsProperty && _renderCtxCreated)
+        {
+            _forceRender = true;
+            RequestNextFrameRendering();
+        }
+    }
+
     protected override void OnOpenGlRender(GlInterface gl, int fb)
     {
         // Crear el render context acá si no se creó todavía. OnOpenGlRender
@@ -69,15 +89,26 @@ public class MpvGlControl : OpenGlControlBase
 
         if (!_renderCtxCreated || _renderCtx == IntPtr.Zero) return;
 
-        ulong flags = mpv_render_context_update(_renderCtx);
-        if ((flags & MPV_RENDER_UPDATE_FRAME) == 0) return;
-
-        //Log($"OnOpenGlRender: frame nuevo, fb={fb}");
-
         double scale = LayoutHelper.GetLayoutScale(this);
         int w = (int)(Bounds.Width * scale);
         int h = (int)(Bounds.Height * scale);
         if (w <= 0 || h <= 0) return;
+
+        // Detectar cambio de tamaño: forzar re-render del último frame.
+        // mpv no re-renderiza solo cuando está pausado, hay que pedirle.
+        bool sizeChanged = w != _lastRenderedW || h != _lastRenderedH;
+
+        // Si no cambió el tamaño y no hay flag de force, mirar si mpv tiene
+        // un frame nuevo. Si no, salir sin renderizar (ahorra GPU).
+        if (!_forceRender && !sizeChanged)
+        {
+            ulong flags = mpv_render_context_update(_renderCtx);
+            if ((flags & MPV_RENDER_UPDATE_FRAME) == 0) return;
+        }
+
+        _forceRender = false;
+        _lastRenderedW = w;
+        _lastRenderedH = h;
 
         _fbo = new mpv_opengl_fbo { fbo = fb, w = w, h = h, internal_format = 0 };
 
