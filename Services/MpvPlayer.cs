@@ -76,7 +76,28 @@ public class MpvPlayer : MprisSource, IDisposable
         // Deshabilitar todo lo nativo de mpv. El video se renderiza via
         // render API, no via VO propio.
         SetOptionString("vo", "libmpv");
-        SetOptionString("hwdec", "auto");
+
+        // Hardware decoding: el DECODE va a hardware dedicado (NVDEC en NVIDIA,
+        // VAAPI en Intel/AMD, VideoToolbox en Mac). NO a shaders de GPU
+        // integrada. Esto baja MUCHO el uso de GPU integrada porque el frame
+        // ya viene decodeado del hardware dedicado.
+        SetOptionString("hwdec", "vaapis");
+
+        // Scalers más livianos que lanczos (default). bilinear es el más
+        // barato, calidad suficiente para la mayoría de los casos.
+        SetOptionString("scale", "bilinear");
+        SetOptionString("cscale", "bilinear");
+        SetOptionString("dscale", "bilinear");
+        SetOptionString("correct-downscaling", "yes");
+        // Fallback de scaler por software (cuando hwdec no está disponible)
+        SetOptionString("sws-scaler", "bilinear");
+
+        // Sin interpolación de frames ni post-proc pesado
+        SetOptionString("interpolation", "no");
+        SetOptionString("deband", "no");
+        SetOptionString("dither-depth", "no");
+
+
         SetOptionString("osc", "no");
         SetOptionString("osd-level", "0");
         SetOptionString("input-default-bindings", "no");

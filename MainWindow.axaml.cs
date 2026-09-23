@@ -91,7 +91,7 @@ public partial class MainWindow : Window
         Mpv.EndReached += OnEndReached;
         Mpv.NextRequested += OnNext;
         Mpv.PrevRequested += OnPrev;
-        Mpv.QuitRequested += () => Close();
+        Mpv.QuitRequested += Close;
         Mpv.RaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
 
         // PlaylistService → refrescar UI
@@ -290,21 +290,6 @@ public partial class MainWindow : Window
         };
         Mpv.Shuffle = _playlist.Shuffle;
         MprisService.Update();
-    }
-
-    // ============================================================
-    // ============  KeyBindings (KeyDown en la ventana)  ========
-    // ============================================================
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        if (e.Key == Key.O && e.KeyModifiers == KeyModifiers.Control)
-        {
-            OpenFile();
-            e.Handled = true;
-            return;
-        }
-        if (_keys.Handle(e)) return;
-        base.OnKeyDown(e);
     }
 
     // ============================================================
