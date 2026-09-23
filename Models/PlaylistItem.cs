@@ -9,14 +9,7 @@ public class PlaylistItem
     public TimeSpan Duration { get; set; }
     public bool IsCurrent { get; set; }
 
-    public string DurationText
-    {
-        get
-        {
-            if (Duration == default) return "--:--";
-            return FormatTime(Duration.TotalSeconds);
-        }
-    }
+    public string DurationText => (Duration == default) ? "--:--" : FormatTime(Duration.TotalSeconds);
 
     public PlaylistItem(string path, string title = null, TimeSpan duration = default)
     {
@@ -25,12 +18,11 @@ public class PlaylistItem
         Duration = duration;
     }
 
+    /// <summary>Formatea segundos como "m:ss" o "h:mm:ss".</summary>
     public static string FormatTime(double seconds)
     {
         if (seconds < 0) seconds = 0;
         var ts = TimeSpan.FromSeconds(seconds);
-        if (ts.TotalHours >= 1)
-            return string.Format("{0:h\\:mm\\:ss}", ts);
-        return string.Format("{0:m\\:ss}", ts);
+        return ts.TotalHours >= 1 ? string.Format("{0:h\\:mm\\:ss}", ts) : string.Format("{0:m\\:ss}", ts);
     }
 }
