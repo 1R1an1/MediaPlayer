@@ -55,11 +55,16 @@ public class MpvPlayer : MprisSource, IDisposable
     public event Action RaiseRequested;
 
     /// <summary>
-    /// Inicializa mpv. wid = window handle (X11 Window ID en Linux).
-    /// Debe llamarse después de que el NativeControlHost tenga su handle nativo.
+    /// Inicializa mpv en modo render API (OpenGL interop). NO pasa wid, así
+    /// que mpv no crea su propia window. El caller tiene que crear un
+    /// mpv_render_context después y llamar a mpv_render_context_render en
+    /// cada frame.
+    ///
+    /// Útil para integrar mpv en un toolkit de UI sin airspace problem.
     /// </summary>
-    public void Init(IntPtr wid)
+    public void InitForRenderApi()
     {
+        Log("MpvPlayer.InitForRenderApi: START (sin wid, modo render)");
         if (_handle != IntPtr.Zero)
             throw new InvalidOperationException("MpvPlayer ya está inicializado.");
 
@@ -68,26 +73,10 @@ public class MpvPlayer : MprisSource, IDisposable
             throw new InvalidOperationException(
                 "mpv_create() falló. ¿Está instalado libmpv2? (apt install libmpv2 / pacman -S mpv)");
 
-        // Embed: pasar wid ANTES de initialize. En Linux/X11 es el X11 Window ID.
-        if (wid != IntPtr.Zero)
-        {
-            long widVal = wid.ToInt64();
-            int err = LibMpv.mpv_set_option_string(_handle, "wid", widVal.ToString());
-            if (err < 0)
-                throw new InvalidOperationException("mpv: no se pudo setear wid. err=" + err);
-            Log("MpvPlayer.Init: wid seteado a 0x" + widVal.ToString("x"));
-        }
-        else
-        {
-            Log("MpvPlayer.Init: wid ES CERO — mpv va a abrir su propia ventana");
-        }
-
-        // Deshabilitar todo lo nativo de mpv: solo queremos que renderice.
-        // vo=x11 es software rendering, NO usa OpenGL. Esto evita conflictos
-        // de GL context con Avalonia (que ya tiene su propio GL context en la
-        // ventana principal). Es más lento pero garantizado para embed.
-        SetOptionString("vo", "x11");
-        SetOptionString("hwdec", "no");
+        // Deshabilitar todo lo nativo de mpv. El video se renderiza via
+        // render API, no via VO propio.
+        SetOptionString("vo", "libmpv");
+        SetOptionString("hwdec", "auto");
         SetOptionString("osc", "no");
         SetOptionString("osd-level", "0");
         SetOptionString("input-default-bindings", "no");
@@ -102,14 +91,14 @@ public class MpvPlayer : MprisSource, IDisposable
         SetOptionString("ytdl", "no");
 
         // Log interno de mpv a /tmp/mpv.log para debug
-        SetOptionString("log-file", "/tmp/mpv.log");
-        SetOptionString("msg-level", "all=v");
+        // SetOptionString("log-file", "/tmp/mpv.log");
+        // SetOptionString("msg-level", "all=v");
 
         if (LibMpv.mpv_initialize(_handle) < 0)
             throw new InvalidOperationException("mpv_initialize() falló.");
-        Log("MpvPlayer.Init: mpv_initialize OK");
+        Log("MpvPlayer.InitForRenderApi: mpv_initialize OK");
 
-        // Observar propiedades. reply_userdata no lo usamos, leemos el nombre.
+        // Observar propiedades
         LibMpv.mpv_observe_property(_handle, 0, "time-pos", LibMpv.MPV_FORMAT_DOUBLE);
         LibMpv.mpv_observe_property(_handle, 1, "duration", LibMpv.MPV_FORMAT_DOUBLE);
         LibMpv.mpv_observe_property(_handle, 2, "pause", LibMpv.MPV_FORMAT_FLAG);
@@ -121,7 +110,6 @@ public class MpvPlayer : MprisSource, IDisposable
         LibMpv.mpv_observe_property(_handle, 8, "track-list/count", LibMpv.MPV_FORMAT_INT64);
         LibMpv.mpv_observe_property(_handle, 9, "aid", LibMpv.MPV_FORMAT_INT64);
 
-        // Wakeup callback + thread de eventos
         _wakeupCb = new LibMpv.MpvWakeupCallback(OnWakeup);
         LibMpv.mpv_set_wakeup_callback(_handle, _wakeupCb, IntPtr.Zero);
 
@@ -133,6 +121,11 @@ public class MpvPlayer : MprisSource, IDisposable
         };
         _eventThread.Start();
     }
+
+    /// <summary>
+    /// Handle interno de mpv. Lo usa MpvGlControl para crear el render context.
+    /// </summary>
+    public IntPtr MpvHandle => _handle;
 
     private void OnWakeup(IntPtr ctx)
     {

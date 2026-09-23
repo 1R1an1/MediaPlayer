@@ -182,6 +182,74 @@ internal static class LibMpv
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
     public static extern ulong mpv_client_api_version();
 
+    // ============================================================
+    // =============  Render API (OpenGL interop)  ================
+    // ============================================================
+    // Permite que mpv renderice a un FBO nuestro en vez de a su propia
+    // window. Es la forma correcta de integrar mpv en un toolkit de UI
+    // sin tener el airspace problem de X11.
+    public const string MPV_RENDER_API_TYPE_OPENGL = "opengl";
+
+    public const int MPV_RENDER_PARAM_INVALID = 0;
+    public const int MPV_RENDER_PARAM_API_TYPE = 1;
+    public const int MPV_RENDER_PARAM_OPENGL_INIT_PARAMS = 2;
+    public const int MPV_RENDER_PARAM_OPENGL_FBO = 3;
+    public const int MPV_RENDER_PARAM_FLIP_Y = 4;
+    public const int MPV_RENDER_PARAM_ADVANCED_CONTROL = 10;
+
+    public const ulong MPV_RENDER_UPDATE_FRAME = 1 << 0;
+
+    // mpv_opengl_init_params: get_proc_address + ctx
+    [StructLayout(LayoutKind.Sequential)]
+    public struct mpv_opengl_init_params
+    {
+        public IntPtr get_proc_address;  // function pointer: void* (*)(void *ctx, const char *name)
+        public IntPtr get_proc_address_ctx;
+    }
+
+    // mpv_opengl_fbo: fbo + w + h + internal_format
+    [StructLayout(LayoutKind.Sequential)]
+    public struct mpv_opengl_fbo
+    {
+        public int fbo;
+        public int w;
+        public int h;
+        public int internal_format;
+    }
+
+    // mpv_render_param: type (int) + data (void*)
+    [StructLayout(LayoutKind.Sequential)]
+    public struct mpv_render_param
+    {
+        public int type;
+        public IntPtr data;
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate IntPtr MpvGetProcAddressDelegate(IntPtr ctx, [MarshalAs(UnmanagedType.LPStr)] string name);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void MpvRenderUpdateCallback(IntPtr cb_ctx);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int mpv_render_context_create(ref IntPtr ctx, IntPtr mpv, mpv_render_param[] params_array);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void mpv_render_context_set_update_callback(
+        IntPtr ctx, MpvRenderUpdateCallback callback, IntPtr cb_ctx);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern ulong mpv_render_context_update(IntPtr ctx);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int mpv_render_context_render(IntPtr ctx, mpv_render_param[] params_array);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void mpv_render_context_report_swap(IntPtr ctx);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void mpv_render_context_free(IntPtr ctx);
+
     // ---- Helpers ----
     public static string PtrToStringUtf8AndFree(IntPtr ptr)
     {

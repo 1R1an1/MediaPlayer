@@ -14,15 +14,12 @@ using MediaPlayer.Services;
 namespace MediaPlayer.Views;
 
 /// <summary>
-/// Vista del reproductor: MpvHost (arriba) + panel de controles (abajo).
+/// Vista del reproductor: MpvGlControl (video via OpenGL) + overlay con controles.
 ///
-/// Los controles viven DEBAJO del MpvHost en el Grid, no encima. mpv solo
-/// dibuja en su child window (que cubre la row 0); los controles Avalonia
-/// viven en la row 1, donde mpv no dibuja. No hay superposición → no hay
-/// airspace problem → no hace falta ventana flotante.
-///
-/// Auto-hide: toggle IsVisible en el panel de controles. Cuando está oculto,
-/// el Grid le da Height=0 a esa row y el MpvHost se expande a toda la ventana.
+/// El video se renderiza via OpenGL interop (mpv render API) a una textura que
+/// es un control más del árbol visual de Avalonia. Los controles viven encima
+/// como overlay. Sin airspace problem: tooltips, controles arriba/abajo/costados,
+/// todo funciona como con cualquier control Avalonia.
 /// </summary>
 public partial class PlayerView : UserControl
 {
@@ -32,7 +29,6 @@ public partial class PlayerView : UserControl
     private bool _seeking;
     private Timer _hideTimer;
     private bool _layoutReadyFired;
-    private int _initAttempts;
 
     // Eventos de UI para que MainWindow los maneje
     public event Action PrevClicked;
@@ -55,7 +51,6 @@ public partial class PlayerView : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        // Hook UI events (los controles viven en este mismo UserControl ahora)
         PlayPauseBtn.Click += OnPlayPauseClick;
         PrevBtn.Click += (s, ev) => PrevClicked?.Invoke();
         NextBtn.Click += (s, ev) => NextClicked?.Invoke();
@@ -68,16 +63,13 @@ public partial class PlayerView : UserControl
         SeekBar.PointerMoved += OnSeekMove;
         VolumeSlider.ValueChanged += OnVolumeChanged;
 
-        // Pointer events en el RootGrid para detectar mouse y toggle auto-hide
         RootGrid.PointerMoved += OnRootPointerMoved;
         RootGrid.PointerExited += (s, ev) => HideControls();
         RootGrid.PointerPressed += OnRootPointerPressed;
 
-        // Auto-hide timer (3s)
         _hideTimer = new Timer(3000) { AutoReset = false };
         _hideTimer.Elapsed += (s, ev) => Dispatcher.UIThread.Invoke(HideControls);
 
-        // Arrancar mostrando los controles
         ShowControls();
 
         // mpv se inicializa después del primer layout pass con size no-cero.
@@ -111,23 +103,17 @@ public partial class PlayerView : UserControl
     {
         if (IsMpvReady) return;
 
-        if (VideoHost == null || !VideoHost.IsReady || VideoHost.Handle == IntPtr.Zero
-            || Bounds.Width == 0 || Bounds.Height == 0)
-        {
-            _initAttempts++;
-            if (_initAttempts > 50)
-            {
-                Log("InitMpv: TIMEOUT - no se pudo obtener handle después de 5s");
-                return;
-            }
-            Dispatcher.UIThread.Post(InitMpv, DispatcherPriority.Render);
-            return;
-        }
-
         try
         {
             Player = new MpvPlayer();
-            Player.Init(VideoHost.Handle);
+            // Modo render API: mpv renderiza a un FBO nuestro, no a una window.
+            // El MpvGlControl se encarga de crear el render context y de
+            // llamar a mpv_render_context_render en cada frame.
+            Player.InitForRenderApi();
+
+            // Pasarle el handle de mpv al control GL para que cree el render context
+            VideoHost.SetMpvHandle(Player.MpvHandle);
+
             IsMpvReady = true;
 
             Player.IsPlayingChanged += OnIsPlayingChanged;
@@ -145,31 +131,47 @@ public partial class PlayerView : UserControl
     }
 
     // ============================================================
-    // ====================  Controls panel  ======================
+    // ====================  Controls overlay  ====================
     // ============================================================
-    // Auto-hide con IsVisible. Cuando el panel está oculto, el Grid le da
-    // Height=0 a esa row y el video se expande a toda la ventana.
     private void ShowControls()
     {
-        ControlsPanel.IsVisible = true;
+        ControlsOverlay.Opacity = 1;
         _hideTimer?.Stop();
         _hideTimer?.Start();
     }
 
-    private void HideControls() => ControlsPanel.IsVisible = false;
+    private void HideControls() => ControlsOverlay.Opacity = 0;
 
     private void OnRootPointerMoved(object sender, PointerEventArgs e)
     {
-        // Cualquier movimiento del mouse muestra los controles.
+        if (ControlsOverlay.Opacity == 0)
+        {
+            ShowControls();
+            return;
+        }
+
+        var pos = e.GetPosition(ControlsOverlay);
+        if (pos.X >= 0 && pos.X <= ControlsOverlay.Bounds.Width &&
+            pos.Y >= 0 && pos.Y <= ControlsOverlay.Bounds.Height)
+        {
+            _hideTimer?.Stop();
+            return;
+        }
         ShowControls();
     }
 
     private void OnRootPointerPressed(object sender, PointerPressedEventArgs e)
     {
+        var pos = e.GetPosition(ControlsOverlay);
+        bool onControls = pos.X >= 0 && pos.X <= ControlsOverlay.Bounds.Width &&
+                          pos.Y >= 0 && pos.Y <= ControlsOverlay.Bounds.Height;
+        if (onControls) return;
+
         if (e.ClickCount >= 2)
             VideoDoubleClicked?.Invoke();
         else
             VideoSingleClicked?.Invoke();
+
         ShowControls();
     }
 

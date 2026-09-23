@@ -4,31 +4,30 @@
              x:Class="MediaPlayer.Views.PlayerView"
              Background="#0a0a0a">
 
-    <!--
-    Layout: video arriba (llena todo), controles abajo (auto-height).
-    Cuando los controles están ocultos (IsVisible=False), el Grid le da
-    Height=0 a esa row y el MpvHost se expande a toda la ventana.
+    <Grid x:Name="RootGrid" Background="#0a0a0a">
 
-    NO hay superposición entre mpv y los controles, así que no hay
-    airspace problem. mpv solo dibuja en su child window que cubre
-    únicamente la row 0.
-    -->
-    <Grid x:Name="RootGrid" Background="#0a0a0a" RowDefinitions="*,Auto">
+        <!--
+        MpvGlControl: renderiza video via OpenGL interop a una textura
+        Avalonia. Es un control más del árbol visual, así que los overlays
+        (controles) se pueden poner encima con ZIndex o simplemente por
+        orden en el Grid. Sin airspace problem.
+        -->
+        <v:MpvGlControl x:Name="VideoHost" />
 
-        <!-- Host nativo donde mpv dibuja. Solo cubre la row 0. -->
-        <v:MpvHost Grid.Row="0" x:Name="VideoHost" />
-
-        <!-- Panel de controles. Auto-hide con IsVisible. -->
-        <Border Grid.Row="1"
-                x:Name="ControlsPanel"
-                Background="#141414"
-                BorderBrush="#2a2a2a"
-                BorderThickness="0,1,0,0"
+        <!--
+        Overlay: barra inferior con controles. Auto-hide con timer.
+        Está DESPUÉS del MpvGlControl en el Grid, así que se dibuja encima.
+        -->
+        <Border x:Name="ControlsOverlay"
+                VerticalAlignment="Bottom"
+                Background="#80000000"
+                IsHitTestVisible="True"
+                Opacity="1"
                 IsVisible="True">
 
             <Border.Transitions>
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
                 </Transitions>
             </Border.Transitions>
 

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -18,6 +19,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            File.Delete("/tmp/mediaplayer.log");
             var main = new MainWindow();
             desktop.MainWindow = main;
 
