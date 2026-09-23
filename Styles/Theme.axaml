@@ -1,0 +1,53 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ====================  Paleta  ==================== -->
+    <!-- Tema negro, accent blanco. Cambiar AccentColor para personalizar. -->
+    <Color x:Key="BackgroundColor">#0a0a0a</Color>
+    <Color x:Key="SurfaceColor">#141414</Color>
+    <Color x:Key="SurfaceElevatedColor">#1c1c1c</Color>
+    <Color x:Key="ForegroundColor">#e8e8e8</Color>
+    <Color x:Key="MutedColor">#888888</Color>
+    <Color x:Key="AccentColor">#ffffff</Color>
+    <Color x:Key="AccentMutedColor">#a0a0a0</Color>
+    <Color x:Key="HoverColor">#2a2a2a</Color>
+    <Color x:Key="PressedColor">#1a1a1a</Color>
+    <Color x:Key="BorderBrushColor">#2a2a2a</Color>
+    <Color x:Key="OverlayColor">#80000000</Color>
+
+    <!-- ====================  Brushes  ==================== -->
+    <SolidColorBrush x:Key="BackgroundBrush"        Color="{StaticResource BackgroundColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush"           Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceElevatedBrush"   Color="{StaticResource SurfaceElevatedColor}" />
+    <SolidColorBrush x:Key="ForegroundBrush"        Color="{StaticResource ForegroundColor}" />
+    <SolidColorBrush x:Key="MutedBrush"             Color="{StaticResource MutedColor}" />
+    <SolidColorBrush x:Key="AccentBrush"            Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentMutedBrush"       Color="{StaticResource AccentMutedColor}" />
+    <SolidColorBrush x:Key="HoverBrush"             Color="{StaticResource HoverColor}" />
+    <SolidColorBrush x:Key="PressedBrush"           Color="{StaticResource PressedColor}" />
+    <SolidColorBrush x:Key="BorderBrush"            Color="{StaticResource BorderBrushColor}" />
+    <SolidColorBrush x:Key="OverlayBrush"           Color="{StaticResource OverlayColor}" />
+
+    <!-- ====================  Tipografía  ==================== -->
+    <FontFamily x:Key="DefaultFontFamily">Inter, SF Pro Display, Segoe UI, Noto Sans, sans-serif</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">JetBrains Mono, SF Mono, Cascadia Mono, Consolas, monospace</FontFamily>
+
+    <!-- Tamaños -->
+    <s:Double x:Key="FontSizeTiny">10</s:Double>
+    <s:Double x:Key="FontSizeSmall">12</s:Double>
+    <s:Double x:Key="FontSizeNormal">14</s:Double>
+    <s:Double x:Key="FontSizeMedium">16</s:Double>
+    <s:Double x:Key="FontSizeLarge">20</s:Double>
+
+    <!-- ====================  Espaciado  ==================== -->
+    <Thickness x:Key="SpacingXSmall">4,4,4,4</Thickness>
+    <Thickness x:Key="SpacingSmall">8,8,8,8</Thickness>
+    <Thickness x:Key="SpacingNormal">12,12,12,12</Thickness>
+    <Thickness x:Key="SpacingLarge">16,16,16,16</Thickness>
+
+    <!-- ====================  Radios  ==================== -->
+    <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="PanelCornerRadius">8</CornerRadius>
+
+</ResourceDictionary>

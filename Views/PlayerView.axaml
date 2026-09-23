@@ -1,0 +1,160 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:MediaPlayer.Views"
+             x:Class="MediaPlayer.Views.PlayerView"
+             Background="#0a0a0a">
+
+    <!--
+    Layout: video arriba (llena todo), controles abajo (auto-height).
+    Cuando los controles están ocultos (IsVisible=False), el Grid le da
+    Height=0 a esa row y el MpvHost se expande a toda la ventana.
+
+    NO hay superposición entre mpv y los controles, así que no hay
+    airspace problem. mpv solo dibuja en su child window que cubre
+    únicamente la row 0.
+    -->
+    <Grid x:Name="RootGrid" Background="#0a0a0a" RowDefinitions="*,Auto">
+
+        <!-- Host nativo donde mpv dibuja. Solo cubre la row 0. -->
+        <v:MpvHost Grid.Row="0" x:Name="VideoHost" />
+
+        <!-- Panel de controles. Auto-hide con IsVisible. -->
+        <Border Grid.Row="1"
+                x:Name="ControlsPanel"
+                Background="#141414"
+                BorderBrush="#2a2a2a"
+                BorderThickness="0,1,0,0"
+                IsVisible="True">
+
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Grid Margin="16,10,16,12">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Fila 1: Seek bar + tiempos -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock  Grid.Column="0"
+                                x:Name="CurrentTimeText"
+                                Text="0:00"
+                                FontFamily="JetBrains Mono, monospace"
+                                FontSize="12"
+                                Foreground="#e8e8e8"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,0" />
+
+                    <Slider     Grid.Column="1"
+                                x:Name="SeekBar"
+                                Minimum="0"
+                                Maximum="1"
+                                VerticalAlignment="Center"
+                                SmallChange="1"
+                                LargeChange="10" />
+
+                    <TextBlock  Grid.Column="2"
+                                x:Name="DurationText"
+                                Text="0:00"
+                                FontFamily="JetBrains Mono, monospace"
+                                FontSize="12"
+                                Foreground="#888888"
+                                VerticalAlignment="Center"
+                                Margin="8,0,0,0" />
+                </Grid>
+
+                <!-- Fila 2: Botones -->
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="6">
+
+                    <Button Classes="icon" x:Name="PrevBtn" ToolTip.Tip="Anterior (B)">
+                        <Path Data="M 14,3 L 5,12 L 14,21 Z M 16,3 L 18,3 L 18,21 L 16,21 Z"
+                              Fill="#e8e8e8"
+                              Width="18" Height="18" Stretch="Uniform" />
+                    </Button>
+
+                    <Button Classes="icon" x:Name="PlayPauseBtn" Width="44" Height="44" ToolTip.Tip="Play/Pausa (Space)">
+                        <Grid>
+                            <Path x:Name="PlayIcon"
+                                  Data="M 6,3 L 20,12 L 6,21 Z"
+                                  Fill="#ffffff"
+                                  Width="20" Height="20" Stretch="Uniform" />
+                            <Path x:Name="PauseIcon"
+                                  Data="M 5,3 L 9,3 L 9,21 L 5,21 Z M 15,3 L 19,3 L 19,21 L 15,21 Z"
+                                  Fill="#ffffff"
+                                  Width="20" Height="20" Stretch="Uniform"
+                                  IsVisible="False" />
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="icon" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
+                        <Path Data="M 4,3 L 13,12 L 4,21 Z M 2,3 L 4,3 L 4,21 L 2,21 Z"
+                              Fill="#e8e8e8"
+                              Width="18" Height="18" Stretch="Uniform" />
+                    </Button>
+
+                    <Border Width="1" Background="#2a2a2a" Margin="8,4" />
+
+                    <Button Classes="icon" x:Name="LoopBtn" ToolTip.Tip="Loop (L)">
+                        <TextBlock x:Name="LoopLabel"
+                                   Text="L"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="#888888"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Button>
+
+                    <Button Classes="icon" x:Name="AudioBtn" ToolTip.Tip="Pista de audio (J)">
+                        <Path Data="M 3,9 L 3,15 L 7,15 L 12,20 L 12,4 L 7,9 Z M 16,8 Q 19,12 16,16 M 18,5 Q 23,12 18,19"
+                              Fill="#e8e8e8"
+                              Width="18" Height="18" Stretch="Uniform" />
+                    </Button>
+                </StackPanel>
+
+                <!-- Volumen a la derecha -->
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Spacing="6">
+
+                    <Button Classes="icon" x:Name="MuteBtn" Width="32" Height="32" ToolTip.Tip="Mute (M)">
+                        <Grid>
+                            <Path x:Name="VolIcon"
+                                  Data="M 3,9 L 3,15 L 7,15 L 12,20 L 12,4 L 7,9 Z M 16,8 Q 19,12 16,16 M 18,5 Q 23,12 18,19"
+                                  Fill="#e8e8e8"
+                                  Width="16" Height="16" Stretch="Uniform" />
+                            <Path x:Name="MuteIcon"
+                                  Data="M 3,9 L 3,15 L 7,15 L 12,20 L 12,4 L 7,9 Z M 16,8 L 22,16 M 22,8 L 16,16"
+                                  Fill="#888888"
+                                  Width="16" Height="16" Stretch="Uniform"
+                                  IsVisible="False" />
+                        </Grid>
+                    </Button>
+
+                    <Slider x:Name="VolumeSlider"
+                            Width="90"
+                            Minimum="0"
+                            Maximum="1"
+                            VerticalAlignment="Center" />
+                </StackPanel>
+
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>
