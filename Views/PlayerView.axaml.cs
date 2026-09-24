@@ -25,6 +25,8 @@ public partial class PlayerView : UserControl
     private Timer _hideTimer;
     private bool _layoutReadyFired;
     private bool _seeking;
+    private bool _canHide = true;
+    private bool _canHideVolume = true;
 
     public event Action PrevClicked;
     public event Action NextClicked;
@@ -46,23 +48,31 @@ public partial class PlayerView : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        PlayPauseBtn.Click += (s, ev) => { PlayPauseClicked?.Invoke(); ShowControls(); };
-        PrevBtn.Click += (s, ev) => PrevClicked?.Invoke();
-        NextBtn.Click += (s, ev) => NextClicked?.Invoke();
-        LoopBtn.Click += (s, ev) => LoopClicked?.Invoke();
-        AudioBtn.Click += (s, ev) => AudioButtonClicked?.Invoke();
-        MuteBtn.Click += (s, ev) => MuteToggled?.Invoke(Player?.IsMuted != true);
+        PlayPauseBtn.Click += (_, _) => PlayPauseClicked?.Invoke();
+        PrevBtn.Click += (_, _) => PrevClicked?.Invoke();
+        NextBtn.Click += (_, _) => NextClicked?.Invoke();
+        LoopBtn.Click += (_, _) => LoopClicked?.Invoke();
+        AudioBtn.Click += (_, _) => AudioButtonClicked?.Invoke();
+        MuteBtn.Click += (_, _) => MuteToggled?.Invoke(Player?.IsMuted != true);
 
-        SeekBar.PointerPressed += OnSeekStart;
-        SeekBar.PointerReleased += OnSeekEnd;
-        SeekBar.PointerMoved += OnSeekMove;
-        VolumeSlider.ValueChanged += (s, ev) => VolumeChanged01?.Invoke(VolumeSlider.Value);
+        // Seek: Tunnel + handledEventsToo porque el Slider maneja PointerPressed/Released
+        // en sus RepeatButtons internos y no siempre los propaga al padre.
+        SeekBar.AddHandler(PointerPressedEvent, (_, _) => { if (_seeking) return; _seeking = true; _canHide = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        SeekBar.AddHandler(PointerReleasedEvent, (_, _) => { if (!_seeking) return; _seeking = false; _canHide = true; SeekRequested?.Invoke(SeekBar.Value); },
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+
+        SeekBar.ValueChanged += (_, _) => CurrentTimeText.Text = PlaylistItem.FormatTime(SeekBar.Value);
+        VolumeSlider.ValueChanged += (_, _) => VolumeChanged01?.Invoke(VolumeSlider.Value);
+
+        // Hover del botón de volumen → mostrar/ocultar popup.
+        VolumeSlider.AddHandler(PointerPressedEvent, (_, _) => { _canHide = false; _canHideVolume = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        VolumeSlider.AddHandler(PointerReleasedEvent, (_, _) => { _canHide = true; _canHideVolume = true; }, RoutingStrategies.Tunnel, handledEventsToo: true);
 
         RootGrid.PointerMoved += OnRootPointerMoved;
-        RootGrid.PointerExited += (s, ev) => HideControls();
+        RootGrid.PointerExited += (_, _) => HideControls();
         RootGrid.PointerPressed += OnRootPointerPressed;
 
-        // Space no activa botones: solo Enter. Así no choca con el atajo global.
+        // Space no activa botones (solo Enter), así no choca con el atajo global.
         foreach (var btn in new[] { PlayPauseBtn, PrevBtn, NextBtn, LoopBtn, AudioBtn, MuteBtn })
             btn.AddHandler(KeyUpEvent, OnButtonKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
 
@@ -112,6 +122,9 @@ public partial class PlayerView : UserControl
             Player.DurationChanged += sec => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); };
             Player.VolumeChanged += v => { if (!_seeking) VolumeSlider.Value = v; };
             Player.MuteChanged += m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; };
+            // Mostrar el video cuando mpv carga un archivo, ocultar cuando no hay.
+            Player.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
+            Player.FileLoaded += () => VideoHost.IsVisible = true;
 
             VolumeSlider.Value = Player.Volume;
         }
@@ -121,7 +134,6 @@ public partial class PlayerView : UserControl
         }
     }
 
-    // Auto-hide de los controles
     private void ShowControls()
     {
         ControlsOverlay.Opacity = 1;
@@ -129,14 +141,34 @@ public partial class PlayerView : UserControl
         _hideTimer?.Start();
     }
 
-    private void HideControls() => ControlsOverlay.Opacity = 0;
+    private void HideControls()
+    {
+        if (_canHide)
+            ControlsOverlay.Opacity = 0;
+    }
+
+    private bool IsPointerInside(Visual visual, Point rootPoint)
+    {
+        var point = visual.TranslatePoint(new Point(0, 0), RootGrid);
+        return point.HasValue && new Rect(point.Value, visual.Bounds.Size).Contains(rootPoint);
+    }
 
     private void OnRootPointerMoved(object sender, PointerEventArgs e)
     {
+        var pos = e.GetPosition(RootGrid);
+
+        bool overVolume = !_canHideVolume ||
+            IsPointerInside(MuteBtn, pos) ||
+            (VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false);
+
+        VolumePopup.IsVisible = overVolume;
+
+        // Durante el seek no tocamos el overlay (evita flicker durante el drag).
+        if (_seeking) return;
+
         if (ControlsOverlay.Opacity == 0) { ShowControls(); return; }
 
-        // Si el mouse está sobre el overlay, no ocultar.
-        var pos = e.GetPosition(ControlsOverlay);
+        pos = e.GetPosition(ControlsOverlay);
         if (pos.X >= 0 && pos.X <= ControlsOverlay.Bounds.Width &&
             pos.Y >= 0 && pos.Y <= ControlsOverlay.Bounds.Height)
         {
@@ -148,9 +180,8 @@ public partial class PlayerView : UserControl
 
     private void OnRootPointerPressed(object sender, PointerPressedEventArgs e)
     {
-        var pos = e.GetPosition(ControlsOverlay);
-        bool onControls = pos.X >= 0 && pos.X <= ControlsOverlay.Bounds.Width &&
-                          pos.Y >= 0 && pos.Y <= ControlsOverlay.Bounds.Height;
+        var pos = e.GetPosition(RootGrid);
+        bool onControls = IsPointerInside(ControlsOverlay, pos) || (VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false);
         if (onControls) return;
 
         if (e.ClickCount >= 2) VideoDoubleClicked?.Invoke();
@@ -158,52 +189,10 @@ public partial class PlayerView : UserControl
         ShowControls();
     }
 
-    // Seek manual: capturamos el pointer y calculamos la posición sobre el track.
-    private void OnSeekStart(object sender, PointerPressedEventArgs e)
-    {
-        _seeking = true;
-        _hideTimer?.Stop();
-        e.Pointer.Capture(SeekBar);
-        UpdateSeekBarFromPointer(e);
-        e.Handled = true;
-    }
-
-    private void OnSeekEnd(object sender, PointerReleasedEventArgs e)
-    {
-        if (!_seeking) return;
-        _seeking = false;
-        e.Pointer.Capture(null);
-        SeekRequested?.Invoke(SeekBar.Value);
-        ShowControls();
-        e.Handled = true;
-    }
-
-    private void OnSeekMove(object sender, PointerEventArgs e)
-    {
-        if (!_seeking) return;
-        _hideTimer?.Stop();
-        UpdateSeekBarFromPointer(e);
-        e.Handled = true;
-    }
-
-    private void UpdateSeekBarFromPointer(PointerEventArgs e)
-    {
-        var pos = e.GetPosition(SeekBar);
-        double trackWidth = SeekBar.Bounds.Width;
-        if (trackWidth <= 0) return;
-
-        double thumbWidth = 12;
-        double usable = trackWidth - thumbWidth;
-        if (usable <= 0) return;
-
-        double rel = Math.Clamp((pos.X - thumbWidth / 2) / usable, 0, 1);
-        SeekBar.Value = SeekBar.Minimum + rel * (SeekBar.Maximum - SeekBar.Minimum);
-    }
-
     private void OnPositionChanged(double sec)
     {
         if (_seeking) return;
-        if (Player != null && Player.DurationSec > 0 && Math.Abs(SeekBar.Value - sec) > 0.1)
+        if (Player != null && Player.DurationSec > 0)
             SeekBar.Value = sec;
         CurrentTimeText.Text = PlaylistItem.FormatTime(sec);
     }
@@ -211,10 +200,11 @@ public partial class PlayerView : UserControl
     // API pública para MainWindow
     public void SetLoopModeLabel(LoopMode mode)
     {
-        var muted = Brush.Parse("#888888");
-        var accent = Brush.Parse("#ffffff");
-        LoopLabel.Foreground = (mode == LoopMode.None) ? muted : accent;
-        LoopLabel.Text = (mode == LoopMode.Track) ? "L1" : "L";
+        var muted = Application.Current.FindResource("MutedBrush") as Brush;
+        var accent = Application.Current.FindResource("AccentBrush") as Brush;
+        LoopIcon.Fill = mode == LoopMode.None ? muted : accent;
+        LoopIcon.IsVisible = mode != LoopMode.Track;
+        LoopOneIcon.IsVisible = mode == LoopMode.Track;
     }
 
     public void ShowAudioMenu(List<AudioTrack> tracks, Action<int> onSelected)

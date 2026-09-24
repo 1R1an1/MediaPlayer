@@ -4,17 +4,10 @@
         x:Class="MediaPlayer.MainWindow"
         Title="MediaPlayer"
         Width="1100" Height="680"
-        MinWidth="640" MinHeight="400"
-        WindowState="Normal"
-        Background="{StaticResource BackgroundBrush}"
-        Foreground="{StaticResource ForegroundBrush}">
+        MinWidth="854" MinHeight="480"
+        WindowState="Normal">
 
-    <Grid x:Name="RootGrid">
-
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />   <!-- Playlist panel, colapsable -->
-        </Grid.ColumnDefinitions>
+    <Grid x:Name="RootGrid" ColumnDefinitions="*,auto">
 
         <!-- Player (video + overlay) -->
         <v:PlayerView Grid.Column="0" x:Name="PlayerControl" />

@@ -1,53 +1,59 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ====================  Paleta  ==================== -->
-    <!-- Tema negro, accent blanco. Cambiar AccentColor para personalizar. -->
+    <!-- Paleta: tema negro con accent blanco -->
     <Color x:Key="BackgroundColor">#0a0a0a</Color>
-    <Color x:Key="SurfaceColor">#141414</Color>
-    <Color x:Key="SurfaceElevatedColor">#1c1c1c</Color>
-    <Color x:Key="ForegroundColor">#e8e8e8</Color>
-    <Color x:Key="MutedColor">#888888</Color>
-    <Color x:Key="AccentColor">#ffffff</Color>
-    <Color x:Key="AccentMutedColor">#a0a0a0</Color>
-    <Color x:Key="HoverColor">#2a2a2a</Color>
-    <Color x:Key="PressedColor">#1a1a1a</Color>
-    <Color x:Key="BorderBrushColor">#2a2a2a</Color>
-    <Color x:Key="OverlayColor">#80000000</Color>
+    <Color x:Key="ForegroundColor">#fff</Color>
+    <Color x:Key="MutedColor">#888</Color>
+    <Color x:Key="BorderColor">#8777</Color>
+    <Color x:Key="AccentColor">#fff</Color>
 
-    <!-- ====================  Brushes  ==================== -->
-    <SolidColorBrush x:Key="BackgroundBrush"        Color="{StaticResource BackgroundColor}" />
-    <SolidColorBrush x:Key="SurfaceBrush"           Color="{StaticResource SurfaceColor}" />
-    <SolidColorBrush x:Key="SurfaceElevatedBrush"   Color="{StaticResource SurfaceElevatedColor}" />
-    <SolidColorBrush x:Key="ForegroundBrush"        Color="{StaticResource ForegroundColor}" />
-    <SolidColorBrush x:Key="MutedBrush"             Color="{StaticResource MutedColor}" />
-    <SolidColorBrush x:Key="AccentBrush"            Color="{StaticResource AccentColor}" />
-    <SolidColorBrush x:Key="AccentMutedBrush"       Color="{StaticResource AccentMutedColor}" />
-    <SolidColorBrush x:Key="HoverBrush"             Color="{StaticResource HoverColor}" />
-    <SolidColorBrush x:Key="PressedBrush"           Color="{StaticResource PressedColor}" />
-    <SolidColorBrush x:Key="BorderBrush"            Color="{StaticResource BorderBrushColor}" />
-    <SolidColorBrush x:Key="OverlayBrush"           Color="{StaticResource OverlayColor}" />
+    <!-- Isla flotante: fondo semi-transparente -->
+    <Color x:Key="IslandColor">#a000</Color>
 
-    <!-- ====================  Tipografía  ==================== -->
+    <!-- Estados de botones (blanco semi-transparente sobre fondo negro) -->
+    <Color x:Key="HoverColor">#2fff</Color>
+    <Color x:Key="PressedColor">#3fff</Color>
+    <Color x:Key="DisabledColor">#5fff</Color>
+
+    <!-- Slider: track vacío (blanco 20%) -->
+    <Color x:Key="TrackEmptyColor">#3fff</Color>
+    <Color x:Key="TrackEmptyDisabledColor">#2fff</Color>
+
+    <!-- Separadores verticales entre islas -->
+    <!-- <Color x:Key="SeparatorColor">#333333</Color> -->
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="BackgroundBrush"      Color="{StaticResource BackgroundColor}" />
+    <SolidColorBrush x:Key="ForegroundBrush"      Color="{StaticResource ForegroundColor}" />
+    <SolidColorBrush x:Key="MutedBrush"           Color="{StaticResource MutedColor}" />
+    <SolidColorBrush x:Key="BorderBrush"           Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="AccentBrush"          Color="{StaticResource AccentColor}" />
+
+    <SolidColorBrush x:Key="IslandBrush"          Color="{StaticResource IslandColor}" />
+
+    <SolidColorBrush x:Key="HoverBrush"           Color="{StaticResource HoverColor}" />
+    <SolidColorBrush x:Key="PressedBrush"         Color="{StaticResource PressedColor}" />
+    <SolidColorBrush x:Key="DisabledBrush"        Color="{StaticResource DisabledColor}" />
+
+    <SolidColorBrush x:Key="TrackEmptyBrush"      Color="{StaticResource TrackEmptyColor}" />
+    <SolidColorBrush x:Key="TrackEmptyDisabledBrush" Color="{StaticResource TrackEmptyDisabledColor}" />
+
+    <!-- <SolidColorBrush x:Key="SeparatorBrush"       Color="{StaticResource SeparatorColor}" /> -->
+
+    <!-- Tipografía -->
     <FontFamily x:Key="DefaultFontFamily">Inter, SF Pro Display, Segoe UI, Noto Sans, sans-serif</FontFamily>
     <FontFamily x:Key="MonoFontFamily">JetBrains Mono, SF Mono, Cascadia Mono, Consolas, monospace</FontFamily>
 
-    <!-- Tamaños -->
-    <s:Double x:Key="FontSizeTiny">10</s:Double>
-    <s:Double x:Key="FontSizeSmall">12</s:Double>
-    <s:Double x:Key="FontSizeNormal">14</s:Double>
-    <s:Double x:Key="FontSizeMedium">16</s:Double>
-    <s:Double x:Key="FontSizeLarge">20</s:Double>
+    <x:Double x:Key="FontSizeSmall">13.5</x:Double>
+    <x:Double x:Key="FontSizeNormal">14</x:Double>
+    <x:Double x:Key="FontSizeMedium">16</x:Double>
 
-    <!-- ====================  Espaciado  ==================== -->
-    <Thickness x:Key="SpacingXSmall">4,4,4,4</Thickness>
-    <Thickness x:Key="SpacingSmall">8,8,8,8</Thickness>
-    <Thickness x:Key="SpacingNormal">12,12,12,12</Thickness>
-    <Thickness x:Key="SpacingLarge">16,16,16,16</Thickness>
+    <!-- Otros -->
+    <CornerRadius x:Key="IslandCornerRadius">20</CornerRadius>
+    <CornerRadius x:Key="PopupCornerRadius">16</CornerRadius>
+    <Thickness x:Key="AllBorderThickness">2</Thickness>
+    <Thickness x:Key="IslandComPadding">4</Thickness>
 
-    <!-- ====================  Radios  ==================== -->
-    <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
-    <CornerRadius x:Key="PanelCornerRadius">8</CornerRadius>
-
+    <!-- Sombra de las islas -->
+    <BoxShadows x:Key="ControlShadow">0 4 16 0 #a000</BoxShadows>
 </ResourceDictionary>

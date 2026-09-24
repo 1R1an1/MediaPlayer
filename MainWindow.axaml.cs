@@ -26,8 +26,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        // KeyDown en Tunnel + handledEventsToo para capturar teclas aunque
-        // un control hijo ya las haya manejado (ej: Space en un botón).
+        // Tunnel + handledEventsToo para capturar teclas aunque un control hijo las maneje.
         AddHandler(KeyDownEvent, OnKeyDownTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 

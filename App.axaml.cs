@@ -49,7 +49,7 @@ public partial class App : Application
                 CanStop = true,
                 SupportsLoop = true,
                 SupportsVolume = true,
-                SupportsRate = true,
+                SupportsRate = false,
                 SupportedUriSchemes = ["file", "http", "https"],
                 SupportedMimeTypes = ["video/mp4", "video/x-matroska", "video/webm"]
             },

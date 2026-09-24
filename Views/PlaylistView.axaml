@@ -1,12 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="MediaPlayer.Views.PlaylistView"
-             Background="{StaticResource SurfaceBrush}"
+             Background="{StaticResource BackgroundBrush}"
              Width="300">
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Header -->
         <Border Grid.Row="0"
                 Padding="16,12"
                 BorderBrush="{StaticResource BorderBrush}"
@@ -15,7 +14,8 @@
                 <TextBlock Grid.Column="0"
                            Text="Cola de reproducción"
                            FontSize="{StaticResource FontSizeMedium}"
-                           FontWeight="SemiBold" />
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource ForegroundBrush}" />
                 <Button   Grid.Column="1"
                           Classes="icon"
                           x:Name="CloseBtn"
@@ -30,13 +30,11 @@
             </Grid>
         </Border>
 
-        <!-- Lista -->
         <ListBox Grid.Row="1"
                  x:Name="List"
                  SelectionMode="Single"
                  Background="Transparent" />
 
-        <!-- Footer: limpiar -->
         <Border Grid.Row="2"
                 Padding="8"
                 BorderBrush="{StaticResource BorderBrush}"

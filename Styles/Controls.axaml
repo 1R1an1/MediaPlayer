@@ -1,142 +1,158 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ====================  Window  ==================== -->
+    <!-- Window / UserControl -->
     <Style Selector="Window">
-        <Setter Property="Background"        Value="{StaticResource BackgroundBrush}" />
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="FontFamily"        Value="{StaticResource DefaultFontFamily}" />
-        <Setter Property="FontSize"          Value="{StaticResource FontSizeNormal}" />
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource DefaultFontFamily}" />
+        <Setter Property="FontSize"   Value="{StaticResource FontSizeNormal}" />
     </Style>
 
-    <!-- ====================  UserControl  ==================== -->
     <Style Selector="UserControl">
-        <Setter Property="Background"        Value="{StaticResource BackgroundBrush}" />
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="FontFamily"        Value="{StaticResource DefaultFontFamily}" />
+        <Setter Property="Background" Value="{StaticResource BackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource DefaultFontFamily}" />
     </Style>
 
-    <!-- ====================  TextBlock  ==================== -->
     <Style Selector="TextBlock">
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
-    </Style>
-    <Style Selector="TextBlock.muted">
-        <Setter Property="Foreground"        Value="{StaticResource MutedBrush}" />
-    </Style>
-    <Style Selector="TextBlock.title">
-        <Setter Property="FontSize"          Value="{StaticResource FontSizeLarge}" />
-        <Setter Property="FontWeight"        Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
     </Style>
 
-    <!-- ====================  Button base  ==================== -->
+    <!-- Button base -->
     <Style Selector="Button">
-        <Setter Property="Background"        Value="Transparent" />
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="BorderThickness"   Value="0" />
-        <Setter Property="Padding"           Value="10,6" />
-        <Setter Property="CornerRadius"      Value="{StaticResource ControlCornerRadius}" />
-        <Setter Property="Cursor"            Value="Hand" />
-        <Setter Property="MinWidth"          Value="0" />
-        <Setter Property="MinHeight"         Value="0" />
+        <Setter Property="Background"      Value="Transparent" />
+        <Setter Property="Foreground"      Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding"         Value="8" />
+        <Setter Property="CornerRadius"    Value="{StaticResource ControlCornerRadius}" />
+        <Setter Property="Cursor"          Value="Hand" />
+        <Setter Property="MinWidth"        Value="0" />
+        <Setter Property="MinHeight"       Value="0" />
     </Style>
 
     <Style Selector="Button:pointerover /template/ ContentPresenter">
-        <Setter Property="Background"        Value="{StaticResource HoverBrush}" />
+        <Setter Property="Background"            Value="{StaticResource HoverBrush}" />
         <Setter Property="TextElement.Foreground" Value="{StaticResource AccentBrush}" />
     </Style>
 
     <Style Selector="Button:pressed /template/ ContentPresenter">
-        <Setter Property="Background"        Value="{StaticResource PressedBrush}" />
+        <Setter Property="Background"            Value="{StaticResource PressedBrush}" />
     </Style>
 
-    <!-- Button: icono (cuadrado, sin padding grande) -->
     <Style Selector="Button.icon">
-        <Setter Property="Padding"           Value="8" />
-        <Setter Property="Width"             Value="36" />
-        <Setter Property="Height"            Value="36" />
+        <Setter Property="Padding" Value="{StaticResource IslandComPadding}" />
+        <Setter Property="Width"   Value="32" />
+        <Setter Property="Height"  Value="32" />
     </Style>
 
-    <!-- Button: primary (accent) -->
-    <Style Selector="Button.primary">
-        <Setter Property="Background"        Value="{StaticResource AccentBrush}" />
-        <Setter Property="Foreground"        Value="{StaticResource BackgroundColor}" />
-    </Style>
-    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-        <Setter Property="Background"        Value="{StaticResource AccentMutedBrush}" />
-        <Setter Property="TextElement.Foreground" Value="{StaticResource BackgroundColor}" />
+
+    <Style Selector="Border.Island">
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Background" Value="{StaticResource IslandBrush}" />
+        <Setter Property="CornerRadius" Value="{StaticResource IslandCornerRadius}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+        <Setter Property="BorderThickness" Value="{StaticResource AllBorderThickness}" />
+        <Setter Property="BoxShadow" Value="{StaticResource ControlShadow}" />
     </Style>
 
-    <!-- ====================  Slider  ==================== -->
+    <!-- Slider: accent blanco, override de los resources del theme Fluent -->
     <Style Selector="Slider">
-        <Setter Property="Foreground"        Value="{StaticResource AccentBrush}" />
-        <Setter Property="MinHeight"         Value="20" />
-    </Style>
-    <Style Selector="Slider /template/ Track">
-        <Setter Property="Height"            Value="3" />
-    </Style>
-    <Style Selector="Slider /template/ Thumb">
-        <Setter Property="Width"             Value="12" />
-        <Setter Property="Height"            Value="12" />
-        <Setter Property="CornerRadius"      Value="6" />
-        <Setter Property="Background"        Value="{StaticResource AccentBrush}" />
-        <Setter Property="BorderThickness"   Value="0" />
+        <Setter Property="Background"   Value="{StaticResource TrackEmptyBrush}" />
+        <Setter Property="Foreground"   Value="{StaticResource AccentBrush}" />
+        <Setter Property="MinHeight"    Value="20" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Style.Resources>
+            <SolidColorBrush x:Key="SliderTrackValueFill"              Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver"   Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPressed"       Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="SliderTrackValueFillDisabled"      Color="{StaticResource DisabledColor}" />
+
+            <SolidColorBrush x:Key="SliderTrackFill"                   Color="{StaticResource TrackEmptyColor}" />
+            <SolidColorBrush x:Key="SliderTrackFillPointerOver"        Color="{StaticResource TrackEmptyColor}" />
+            <SolidColorBrush x:Key="SliderTrackFillPressed"            Color="{StaticResource TrackEmptyColor}" />
+            <SolidColorBrush x:Key="SliderTrackFillDisabled"           Color="{StaticResource TrackEmptyDisabledColor}" />
+
+            <SolidColorBrush x:Key="SliderThumbBackground"             Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver"  Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPressed"      Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundDisabled"     Color="{StaticResource DisabledColor}" />
+
+            <SolidColorBrush x:Key="SliderContainerBackground"             Color="Transparent" />
+            <SolidColorBrush x:Key="SliderContainerBackgroundPointerOver"  Color="Transparent" />
+            <SolidColorBrush x:Key="SliderContainerBackgroundPressed"      Color="Transparent" />
+
+            <x:Double x:Key="SliderHorizontalThumbWidth">12</x:Double>
+            <x:Double x:Key="SliderHorizontalThumbHeight">12</x:Double>
+            <x:Double x:Key="SliderVerticalThumbWidth">12</x:Double>
+            <x:Double x:Key="SliderVerticalThumbHeight">12</x:Double>
+            <CornerRadius x:Key="SliderThumbCornerRadius">6</CornerRadius>
+        </Style.Resources>
     </Style>
 
-    <!-- ====================  ScrollBar  ==================== -->
+    <Style Selector="Slider /template/ Track">
+        <Setter Property="Height" Value="3" />
+    </Style>
+
+    <Style Selector="Slider:vertical /template/ Track">
+        <Setter Property="Width"  Value="3" />
+        <Setter Property="Height" Value="100" />
+    </Style>
+
+    <!-- ScrollBar fina -->
     <Style Selector="ScrollBar">
-        <Setter Property="Background"        Value="Transparent" />
+        <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ScrollBar:vertical">
-        <Setter Property="Width"             Value="6" />
+        <Setter Property="Width" Value="6" />
     </Style>
     <Style Selector="ScrollBar:horizontal">
-        <Setter Property="Height"            Value="6" />
+        <Setter Property="Height" Value="6" />
     </Style>
     <Style Selector="ScrollBar /template/ Thumb">
-        <Setter Property="Background"        Value="{StaticResource HoverBrush}" />
-        <Setter Property="CornerRadius"      Value="3" />
-        <Setter Property="Margin"            Value="1" />
+        <Setter Property="Background"   Value="{StaticResource HoverBrush}" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Margin"       Value="1" />
     </Style>
     <Style Selector="ScrollBar /template/ Thumb:pointerover">
-        <Setter Property="Background"        Value="{StaticResource MutedBrush}" />
+        <Setter Property="Background" Value="{StaticResource PressedBrush}" />
     </Style>
 
-    <!-- ====================  ListBox (playlist)  ==================== -->
+    <!-- ListBox (playlist) -->
     <Style Selector="ListBox">
-        <Setter Property="Background"        Value="Transparent" />
-        <Setter Property="BorderThickness"   Value="0" />
-        <Setter Property="Padding"           Value="0" />
+        <Setter Property="Background"      Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding"         Value="0" />
     </Style>
     <Style Selector="ListBoxItem">
-        <Setter Property="Padding"           Value="12,8" />
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="Padding"    Value="12,8" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
     </Style>
     <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-        <Setter Property="Background"        Value="{StaticResource HoverBrush}" />
+        <Setter Property="Background"            Value="{StaticResource HoverBrush}" />
     </Style>
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-        <Setter Property="Background"        Value="{StaticResource SurfaceElevatedBrush}" />
+        <Setter Property="Background"            Value="{StaticResource PressedBrush}" />
         <Setter Property="TextElement.Foreground" Value="{StaticResource AccentBrush}" />
     </Style>
 
-    <!-- ====================  Border  ==================== -->
-    <Style Selector="Border.divider">
-        <Setter Property="BorderBrush"       Value="{StaticResource BorderBrush}" />
-        <Setter Property="BorderThickness"   Value="0,0,0,1" />
-    </Style>
-
-    <!-- ====================  Menu (para audio tracks popup)  ==================== -->
-    <Style Selector="Menu">
-        <Setter Property="Background"        Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="BorderBrush"       Value="{StaticResource BorderBrush}" />
+    <!-- ContextMenu (popup de audio tracks) -->
+    <Style Selector="ContextMenu">
+        <Setter Property="Background"      Value="{StaticResource IslandBrush}" />
+        <Setter Property="Foreground"      Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="BorderBrush"     Value="{StaticResource BorderColor}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius"    Value="{StaticResource PopupCornerRadius}" />
+        <Setter Property="Padding"         Value="4" />
     </Style>
     <Style Selector="MenuItem">
-        <Setter Property="Foreground"        Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="Padding"           Value="12,6" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="Padding"    Value="10,6" />
+        <Setter Property="CornerRadius" Value="4" />
     </Style>
     <Style Selector="MenuItem:pointerover">
-        <Setter Property="Background"        Value="{StaticResource HoverBrush}" />
+        <Setter Property="Background" Value="{StaticResource HoverBrush}" />
     </Style>
 
 </Styles>

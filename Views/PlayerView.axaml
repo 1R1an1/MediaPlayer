@@ -1,159 +1,142 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:v="clr-namespace:MediaPlayer.Views"
-             x:Class="MediaPlayer.Views.PlayerView"
-             Background="#0a0a0a">
+             x:Class="MediaPlayer.Views.PlayerView">
 
-    <Grid x:Name="RootGrid" Background="#0a0a0a">
+    <Grid x:Name="RootGrid" Margin="2,0,0,0" Background="{StaticResource BackgroundBrush}">
 
-        <!--
-        MpvGlControl: renderiza video via OpenGL interop a una textura
-        Avalonia. Es un control más del árbol visual, así que los overlays
-        (controles) se pueden poner encima con ZIndex o simplemente por
-        orden en el Grid. Sin airspace problem.
-        -->
-        <v:MpvGlControl x:Name="VideoHost" />
+        <!-- Video: renderiza via OpenGL a una textura Avalonia -->
+        <v:MpvGlControl Margin="-2,0,0,0" IsVisible="False" x:Name="VideoHost" />
 
-        <!--
-        Overlay: barra inferior con controles. Auto-hide con timer.
-        Está DESPUÉS del MpvGlControl en el Grid, así que se dibuja encima.
-        -->
+        <!-- Popup del slider de volumen. Va AFUERA del overlay para que no
+        lo recorten los contenedores chicos. -->
+        <Grid x:Name="VolumePopup"
+              Margin="0,0,91,30"
+              VerticalAlignment="Bottom"
+              HorizontalAlignment="Right"
+              IsVisible="False"
+              Height="150"
+              Background="Transparent"
+              IsHitTestVisible="True">
+            <Border
+                Background="{StaticResource IslandBrush}"
+                CornerRadius="{StaticResource PopupCornerRadius}"
+                BorderBrush="{StaticResource BorderColor}"
+                BorderThickness="{StaticResource AllBorderThickness}"
+                VerticalAlignment="Top"
+                Height="120"
+                Padding="5,12"
+                BoxShadow="{StaticResource ControlShadow}">
+                <Slider x:Name="VolumeSlider"
+                        Orientation="Vertical"
+                        Height="100"
+                        Minimum="0"
+                        Maximum="1"
+                        Width="20" />
+            </Border>
+        </Grid>
+
+        <!-- Overlay que contiene las islas. Se oculta con Opacity (auto-hide). -->
         <Border x:Name="ControlsOverlay"
                 VerticalAlignment="Bottom"
-                Background="#80000000"
+                Margin="10,12,12,12"
+                Background="Transparent"
                 IsHitTestVisible="True"
                 Opacity="1"
                 IsVisible="True">
 
             <Border.Transitions>
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
                 </Transitions>
             </Border.Transitions>
 
-            <Grid Margin="16,10,16,12">
+            <!-- Tres islas separadas horizontalmente -->
+            <Grid ColumnSpacing="8" ColumnDefinitions="auto,*, auto">
 
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+                <!-- Isla 1: botones de reproducción -->
+                <Border Classes="Island" Grid.Column="0">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Classes="icon" x:Name="PrevBtn" CornerRadius="15" ToolTip.Tip="Anterior (B)">
+                            <Path Data="M7 3 Q8 3 8 4 L8 10 L16.5 3.5 Q17.5 2.5 18.5 3.5 Q19 4 19 5 L19 19 Q19 20 18.5 20.5 Q17.5 21.5 16.5 20.5 L8 14 L8 20 Q8 21 7 21 L5 21 Q4 21 4 20 L4 4 Q4 3 5 3 Z"
+                                  Fill="{StaticResource AccentBrush}" Width="14" Height="14" Stretch="Uniform" />
+                        </Button>
+                        <Button Classes="icon" CornerRadius="15" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pausa (Space)">
+                            <Grid Margin="4,0,0,0">
+                                <Path x:Name="PlayIcon"
+                                      Data="M6 3 Q5 3 5 4 L5 20 Q5 21 6 21 Q6.5 21 7 20.7 L20 13 Q21 12 20 11 L7 3.3 Q6.5 3 6 3 Z"
+                                      Fill="{StaticResource AccentBrush}" Width="14" Height="14" Stretch="Uniform" />
+                                <Path x:Name="PauseIcon"
+                                      Data="M6 3 Q5 3 5 4 L5 20 Q5 21 6 21 L9 21 Q10 21 10 20 L10 4 Q10 3 9 3 Z M15 3 Q14 3 14 4 L14 20 Q14 21 15 21 L18 21 Q19 21 19 20 L19 4 Q19 3 18 3 Z"
+                                      Fill="{StaticResource AccentBrush}" Width="14" Height="14" Stretch="Uniform"
+                                      IsVisible="False" />
+                            </Grid>
+                        </Button>
+                        <Button Classes="icon" CornerRadius="15" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
+                            <Path Data="M17 3 Q16 3 16 4 L16 10 L8.5 3.5 Q7.5 2.5 6.5 3.5 Q6 4 6 5 L6 19 Q6 20 6.5 20.5 Q7.5 21.5 8.5 20.5 L16 14 L16 20 Q16 21 17 21 L19 21 Q20 21 20 20 L20 4 Q20 3 19 3 Z"
+                                  Fill="{StaticResource AccentBrush}" Width="14" Height="14" Stretch="Uniform" />
+                        </Button>
+                    </StackPanel>
+                </Border>
 
-                <!-- Fila 1: Seek bar + tiempos -->
-                <Grid Grid.Row="0" Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock  Grid.Column="0"
-                                x:Name="CurrentTimeText"
-                                Text="0:00"
-                                FontFamily="JetBrains Mono, monospace"
-                                FontSize="12"
-                                Foreground="#e8e8e8"
-                                VerticalAlignment="Center"
-                                Margin="0,0,8,0" />
-
-                    <Slider     Grid.Column="1"
-                                x:Name="SeekBar"
-                                Minimum="0"
+                <!-- Isla 2: tiempos + seek bar -->
+                <Border Classes="Island" Grid.Column="1">
+                    <Grid ColumnDefinitions="auto,*,auto" Margin="3.5,0" ColumnSpacing="8">
+                        <TextBlock x:Name="CurrentTimeText"
+                                   Text="0:00"
+                                   Padding="{StaticResource IslandComPadding}"
+                                   FontFamily="{StaticResource MonoFontFamily}"
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center"/>
+                        <Slider x:Name="SeekBar"
+                                Minimum="0" Grid.Column="1"
                                 Maximum="1"
                                 VerticalAlignment="Center"
                                 SmallChange="1"
                                 LargeChange="10" />
+                        <TextBlock x:Name="DurationText"
+                                   Padding="{StaticResource IslandComPadding}"
+                                   Text="0:00" Grid.Column="2"
+                                   FontFamily="{StaticResource MonoFontFamily}"
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
 
-                    <TextBlock  Grid.Column="2"
-                                x:Name="DurationText"
-                                Text="0:00"
-                                FontFamily="JetBrains Mono, monospace"
-                                FontSize="12"
-                                Foreground="#888888"
-                                VerticalAlignment="Center"
-                                Margin="8,0,0,0" />
-                </Grid>
+                <!-- Isla 3: volumen + loop + audio -->
+                <Border Classes="Island" Grid.Column="2">
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button Classes="icon" CornerRadius="15" x:Name="MuteBtn" ToolTip.Tip="Mute (M)">
+                            <Grid Margin="2.5,2.5,0,0">
+                                <Path x:Name="VolIcon"
+                                      Data="M54.038 11.175c-.559-.001-1.212.225-1.844.75L27.569 32.394c-1.099.912-1.571 1.062-3.094 1.062H8.631a3.887 3.887 0 0 0-3.906 3.907v25.343a3.887 3.887 0 0 0 3.906 3.906h15.844c1.523 0 1.995.15 3.094 1.063l24.625 20.469c1.686 1.4 3.5.725 3.5-.938V12.863c0-1.04-.726-1.686-1.657-1.688m31.656 7.438-5.813 5.812c9.996 15.627 10.005 35.69 0 51.313l5.781 5.75c12.972-18.92 12.996-43.953.032-62.875m-14.031 14-5.72 5.75a19.55 19.55 0 0 1 0 23.437l5.688 5.688c8.24-10.132 8.263-24.74.031-34.875"
+                                      Fill="{StaticResource AccentBrush}" Width="18" Height="18" Stretch="Uniform" />
+                                <Path x:Name="MuteIcon"
+                                      Margin="1,2,0,0"
+                                      Data="M 61.5625 25.125 C 61.004358 25.1236 60.351195 25.349584 59.71875 25.875 L 35.09375 46.34375 C 33.995364 47.256261 33.491738 47.40625 31.96875 47.40625 L 16.125 47.40625 C 13.952281 47.40625 12.21875 49.139767 12.21875 51.3125 L 12.21875 76.65625 C 12.21875 78.828982 13.952281 80.59375 16.125 80.59375 L 31.96875 80.59375 C 33.491738 80.59375 33.995364 80.743739 35.09375 81.65625 L 59.71875 102.125 C 61.405268 103.5261 63.21875 102.85059 63.21875 101.1875 L 63.21875 26.8125 C 63.21875 25.77307 62.492736 25.12717 61.5625 25.125 z M 78.90625 43.59375 L 71.8125 50.65625 L 75.34375 54.21875 L 85.15625 64.03125 L 75.34375 73.84375 L 71.8125 77.375 L 78.90625 84.4375 L 82.4375 80.90625 L 92.25 71.09375 L 102.0625 80.90625 L 105.59375 84.4375 L 112.6875 77.375 L 109.125 73.84375 L 99.3125 64.03125 L 109.125 54.21875 L 112.6875 50.65625 L 105.59375 43.59375 L 102.0625 47.125 L 92.25 56.9375 L 82.4375 47.125 L 78.90625 43.59375 z "
+                                      Fill="{StaticResource MutedBrush}" Width="18" Height="18" Stretch="Uniform"
+                                      IsVisible="False" />
+                            </Grid>
+                        </Button>
 
-                <!-- Fila 2: Botones -->
-                <StackPanel Grid.Row="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            Spacing="6">
+                        <Button Classes="icon" x:Name="LoopBtn" CornerRadius="15" ToolTip.Tip="Loop (L)">
+                            <Grid>
+                                <Path x:Name="LoopIcon" Data="M20.924 5.617a.997.997 0 0 0-.217-.324l-3-3a1 1 0 1 0-1.414 1.414L17.586 5H8a5 5 0 0 0-5 5v2a1 1 0 1 0 2 0v-2a3 3 0 0 1 3-3h9.586l-1.293 1.293a1 1 0 0 0 1.414 1.414l3-3A.997.997 0 0 0 21 6m-.076-.383a.996.996 0 0 1 .076.38l-.076-.38zm-17.848 12a.997.997 0 0 0 .217 1.09l3 3a1 1 0 1 0 1.414-1.414L6.414 19H16a5 5 0 0 0 5-5v-2a1 1 0 1 0-2 0v2a3 3 0 0 1-3 3H6.414l1.293-1.293a1 1 0 1 0-1.414-1.414l-3 3m-.217.324a.997.997 0 0 1 .215-.322l-.215.322z"
+                                      Fill="{StaticResource MutedBrush}" Width="18" Height="18" Stretch="Uniform" IsVisible="True"/>
+                                <Path x:Name="LoopOneIcon" Data="M20.924 5.617a.997.997 0 0 0-.217-.324l-3-3a1 1 0 1 0-1.414 1.414L17.586 5H8a5 5 0 0 0-5 5v2a1 1 0 1 0 2 0v-2a3 3 0 0 1 3-3h9.586l-1.293 1.293a1 1 0 0 0 1.414 1.414l3-3A.997.997 0 0 0 21 6m-.076-.383a.996.996 0 0 1 .076.38l-.076-.38zm-17.848 12a.997.997 0 0 0 .217 1.09l3 3a1 1 0 1 0 1.414-1.414L6.414 19H16a5 5 0 0 0 5-5v-2a1 1 0 1 0-2 0v2a3 3 0 0 1-3 3H6.414l1.293-1.293a1 1 0 1 0-1.414-1.414l-3 3m-.217.324a.997.997 0 0 1 .215-.322l-.215.322z M11.75 8 L13 8 L13 15 L14.5 15 L14.5 16 L10.5 16 L10.5 15 L11.75 15 Z M11.75 8 L10.5 9.25 L10.5 10.5 L11.75 9.25 Z"
+                                      Fill="{StaticResource AccentBrush}" Width="18" Height="18" Stretch="Uniform" IsVisible="False"/>
+                            </Grid>
+                        </Button>
 
-                    <Button Classes="icon" x:Name="PrevBtn" ToolTip.Tip="Anterior (B)">
-                        <Path Data="M 14,3 L 5,12 L 14,21 Z M 16,3 L 18,3 L 18,21 L 16,21 Z"
-                              Fill="#e8e8e8"
-                              Width="18" Height="18" Stretch="Uniform" />
-                    </Button>
-
-                    <Button Classes="icon" x:Name="PlayPauseBtn" Width="44" Height="44" ToolTip.Tip="Play/Pausa (Space)">
-                        <Grid>
-                            <Path x:Name="PlayIcon"
-                                  Data="M 6,3 L 20,12 L 6,21 Z"
-                                  Fill="#ffffff"
-                                  Width="20" Height="20" Stretch="Uniform" />
-                            <Path x:Name="PauseIcon"
-                                  Data="M 5,3 L 9,3 L 9,21 L 5,21 Z M 15,3 L 19,3 L 19,21 L 15,21 Z"
-                                  Fill="#ffffff"
-                                  Width="20" Height="20" Stretch="Uniform"
-                                  IsVisible="False" />
-                        </Grid>
-                    </Button>
-
-                    <Button Classes="icon" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
-                        <Path Data="M 4,3 L 13,12 L 4,21 Z M 2,3 L 4,3 L 4,21 L 2,21 Z"
-                              Fill="#e8e8e8"
-                              Width="18" Height="18" Stretch="Uniform" />
-                    </Button>
-
-                    <Border Width="1" Background="#2a2a2a" Margin="8,4" />
-
-                    <Button Classes="icon" x:Name="LoopBtn" ToolTip.Tip="Loop (L)">
-                        <TextBlock x:Name="LoopLabel"
-                                   Text="L"
-                                   FontSize="13"
-                                   FontWeight="SemiBold"
-                                   Foreground="#888888"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center" />
-                    </Button>
-
-                    <Button Classes="icon" x:Name="AudioBtn" ToolTip.Tip="Pista de audio (J)">
-                        <Path Data="M 3,9 L 3,15 L 7,15 L 12,20 L 12,4 L 7,9 Z M 16,8 Q 19,12 16,16 M 18,5 Q 23,12 18,19"
-                              Fill="#e8e8e8"
-                              Width="18" Height="18" Stretch="Uniform" />
-                    </Button>
-                </StackPanel>
-
-                <!-- Volumen a la derecha -->
-                <StackPanel Grid.Row="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            Spacing="6">
-
-                    <Button Classes="icon" x:Name="MuteBtn" Width="32" Height="32" ToolTip.Tip="Mute (M)">
-                        <Grid>
-                            <Path x:Name="VolIcon"
-                                  Data="M 3,9 L 3,15 L 7,15 L 12,20 L 12,4 L 7,9 Z M 16,8 Q 19,12 16,16 M 18,5 Q 23,12 18,19"
-                                  Fill="#e8e8e8"
-                                  Width="16" Height="16" Stretch="Uniform" />
-                            <Path x:Name="MuteIcon"
-                                  Data="M 3,9 L 3,15 L 7,15 L 12,20 L 12,4 L 7,9 Z M 16,8 L 22,16 M 22,8 L 16,16"
-                                  Fill="#888888"
-                                  Width="16" Height="16" Stretch="Uniform"
-                                  IsVisible="False" />
-                        </Grid>
-                    </Button>
-
-                    <Slider x:Name="VolumeSlider"
-                            Width="90"
-                            Minimum="0"
-                            Maximum="1"
-                            VerticalAlignment="Center" />
-                </StackPanel>
-
+                        <Button Classes="icon" x:Name="AudioBtn" CornerRadius="15" ToolTip.Tip="Pista de audio (J)">
+                            <Path Data="M3 16.5C2.59 16.5 2.25 16.16 2.25 15.75V8.25C2.25 7.84 2.59 7.5 3 7.5C3.41 7.5 3.75 7.84 3.75 8.25V15.75C3.75 16.16 3.41 16.5 3 16.5Z M7.5 19C7.09 19 6.75 18.66 6.75 18.25V5.75C6.75 5.34 7.09 5 7.5 5C7.91 5 8.25 5.34 8.25 5.75V18.25C8.25 18.66 7.91 19 7.5 19Z M12 21.5C11.59 21.5 11.25 21.16 11.25 20.75V3.25C11.25 2.84 11.59 2.5 12 2.5C12.41 2.5 12.75 2.84 12.75 3.25V20.75C12.75 21.16 12.41 21.5 12 21.5Z M16.5 19C16.09 19 15.75 18.66 15.75 18.25V5.75C15.75 5.34 16.09 5 16.5 5C16.91 5 17.25 5.34 17.25 5.75V18.25C17.25 18.66 16.91 19 16.5 19Z M21 16.5C20.59 16.5 20.25 16.16 20.25 15.75V8.25C20.25 7.84 20.59 7.5 21 7.5C21.41 7.5 21.75 7.84 21.75 8.25V15.75C21.75 16.16 21.41 16.5 21 16.5Z"
+                                  Fill="{StaticResource AccentBrush}" Width="18" Height="18" Stretch="Uniform" />
+                        </Button>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
-
     </Grid>
 </UserControl>
