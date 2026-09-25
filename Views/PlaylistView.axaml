@@ -5,8 +5,9 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
 
+        <!-- Header -->
         <Border Grid.Row="0"
-                Padding="16,12"
+                Padding="16,14"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="*,Auto">
@@ -15,25 +16,26 @@
                            FontSize="{StaticResource FontSizeMedium}"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource ForegroundBrush}" />
-                <Button   Grid.Column="1"
-                          Classes="icon"
-                          x:Name="CloseBtn"
-                          Width="28" Height="28"
-                          Padding="0"
-                          ToolTip.Tip="Cerrar (C)">
-                    <Path Data="M 6,6 L 18,18 M 18,6 L 6,18"
-                          Stroke="{StaticResource MutedBrush}"
-                          StrokeThickness="2"
-                          Width="14" Height="14" />
-                </Button>
+                <Button Grid.Column="1"
+                        x:Name="CloseBtn"
+                        Classes="icon"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Width="28" Height="28"
+                        CornerRadius="14"
+                        FontFamily="{StaticResource MonoFontFamily}"
+                        Content="X"
+                        ToolTip.Tip="Cerrar (C)"/>
             </Grid>
         </Border>
 
+        <!-- Lista -->
         <ListBox Grid.Row="1"
                  x:Name="List"
                  SelectionMode="Single"
-                 Background="Transparent" />
+                 Padding="10"/>
 
+        <!-- Footer -->
         <Border Grid.Row="2"
                 Padding="8"
                 BorderBrush="{StaticResource BorderBrush}"
@@ -42,6 +44,7 @@
                     Content="Limpiar cola"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Center"
+                    CornerRadius="{StaticResource ControlCornerRadius}"
                     Padding="8,6" />
         </Border>
 

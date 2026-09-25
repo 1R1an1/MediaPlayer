@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using MediaPlayer.Models;
 
@@ -25,24 +27,54 @@ public partial class PlaylistView : UserControl
     public void SetItems(IReadOnlyList<PlaylistItem> items, int currentIndex)
     {
         var panels = new List<StackPanel>();
+        var accent = (IBrush)Application.Current.FindResource("AccentBrush");
+        var foreground = (IBrush)Application.Current.FindResource("ForegroundBrush");
+        var muted = (IBrush)Application.Current.FindResource("MutedBrush");
+
         for (int i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 2 };
+            bool isCurrent = i == currentIndex;
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Margin = new Thickness(2, 2, 0, 2),
+                ClipToBounds = true
+            };
 
-            panel.Children.Add(new TextBlock
+            // Indicador de item actual (barra blanca a la izquierda)
+            if (isCurrent)
+            {
+                panel.Children.Add(new Border
+                {
+                    Width = 3,
+                    Background = accent,
+                    CornerRadius = new CornerRadius(2),
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                });
+            }
+
+            var textPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = 1,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            textPanel.Children.Add(new TextBlock
             {
                 Text = item.Title,
-                FontWeight = (i == currentIndex) ? FontWeight.SemiBold : FontWeight.Normal,
-                Foreground = (i == currentIndex) ? Brush.Parse("#ffffff") : Brush.Parse("#e8e8e8"),
+                FontWeight = isCurrent ? FontWeight.SemiBold : FontWeight.Normal,
+                Foreground = isCurrent ? accent : foreground,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             });
-            panel.Children.Add(new TextBlock
+            textPanel.Children.Add(new TextBlock
             {
                 Text = item.DurationText,
                 FontSize = 11,
-                Foreground = Brush.Parse("#888888"),
+                Foreground = muted,
             });
+            panel.Children.Add(textPanel);
             panels.Add(panel);
         }
 
