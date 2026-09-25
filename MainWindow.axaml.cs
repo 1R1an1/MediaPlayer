@@ -93,7 +93,7 @@ public partial class MainWindow : Window
             _playlist.SetCurrent(idx);
             LoadCurrentFromPlaylist();
         };
-        Playlist.CloseRequested += () => Playlist.IsVisible = false;
+        Playlist.CloseRequested += () => PlaylistGrid.IsVisible = false;
         Playlist.ClearRequested += _playlist.Clear;
 
         // KeyBindings
@@ -113,7 +113,7 @@ public partial class MainWindow : Window
             int idx = list.ToList().FindIndex(t => t.IsSelected);
             Mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
         };
-        _keys.TogglePlaylist = () => Playlist.IsVisible = !Playlist.IsVisible;
+        _keys.TogglePlaylist = () => PlaylistGrid.IsVisible = !PlaylistGrid.IsVisible;
         _keys.Quit = Close;
 
         PlayerControl.SetLoopModeLabel(_playlist.LoopMode);
@@ -241,5 +241,17 @@ public partial class MainWindow : Window
         string ext = Path.GetExtension(path).ToLowerInvariant();
         string[] exts = { ".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts" };
         return Array.IndexOf(exts, ext) >= 0;
+    }
+
+    bool pressed = false;
+    private void Border_PointerReleased(object sender, PointerReleasedEventArgs e) => pressed = false;
+    private void Border_PointerPressed(object sender, PointerPressedEventArgs e) => pressed = true;
+
+    private void Border_PointerMoved(object sender, PointerEventArgs e)
+    {
+        if (!pressed) return;
+        var pos = e.GetPosition(this);
+        if (pos.X < 100 || Width - pos.X < 100) return;
+        PlaylistGrid.Width = Width - pos.X;
     }
 }

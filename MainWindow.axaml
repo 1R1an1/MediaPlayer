@@ -3,8 +3,8 @@
         xmlns:v="clr-namespace:MediaPlayer.Views"
         x:Class="MediaPlayer.MainWindow"
         Title="MediaPlayer"
-        Width="1100" Height="680"
-        MinWidth="854" MinHeight="480"
+        Width="854" Height="480"
+        MinWidth="426" MinHeight="240"
         WindowState="Normal">
 
     <Grid x:Name="RootGrid" ColumnDefinitions="*,auto">
@@ -13,8 +13,9 @@
         <v:PlayerView Grid.Column="0" x:Name="PlayerControl" />
 
         <!-- Playlist lateral -->
-        <v:PlaylistView Grid.Column="1" x:Name="Playlist"
-                        IsVisible="False" />
-
+        <Grid Grid.Column="1" ColumnDefinitions="3,*" x:Name="PlaylistGrid" IsVisible="False" >
+            <Border Width="3" Background="{StaticResource BorderBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" Cursor="SizeWestEast" PointerPressed="Border_PointerPressed" PointerMoved="Border_PointerMoved" PointerReleased="Border_PointerReleased"/>
+            <v:PlaylistView Grid.Column="1" x:Name="Playlist"/>
+        </Grid>
     </Grid>
 </Window>
