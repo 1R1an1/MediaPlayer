@@ -39,6 +39,8 @@ public partial class PlayerView : UserControl
     public event Action VideoDoubleClicked;
     public event Action VideoSingleClicked;
 
+    private bool IsPointerOverVoluenPopup(Point pos) => VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false;
+
     public PlayerView()
     {
         InitializeComponent();
@@ -144,7 +146,10 @@ public partial class PlayerView : UserControl
     private void HideControls()
     {
         if (_canHide)
+        {
             ControlsOverlay.Opacity = 0;
+            _hideTimer?.Stop();
+        }
     }
 
     private bool IsPointerInside(Visual visual, Point rootPoint)
@@ -159,29 +164,30 @@ public partial class PlayerView : UserControl
 
         bool overVolume = !_canHideVolume ||
             IsPointerInside(MuteBtn, pos) ||
-            (VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false);
+            IsPointerOverVoluenPopup(pos);
 
         VolumePopup.IsVisible = overVolume;
 
         // Durante el seek no tocamos el overlay (evita flicker durante el drag).
         if (_seeking) return;
-
-        if (ControlsOverlay.Opacity == 0) { ShowControls(); return; }
-
-        pos = e.GetPosition(ControlsOverlay);
-        if (pos.X >= 0 && pos.X <= ControlsOverlay.Bounds.Width &&
-            pos.Y >= 0 && pos.Y <= ControlsOverlay.Bounds.Height)
+        if (ControlsOverlay.Opacity == 0)
+            ShowControls();
+        else if (IsPointerInside(ControlsOverlay, pos) || IsPointerOverVoluenPopup(pos))
         {
+            _canHide = false;
             _hideTimer?.Stop();
-            return;
         }
-        ShowControls();
+        else
+        {
+            _canHide = true;
+            _hideTimer?.Start();
+        }
     }
 
     private void OnRootPointerPressed(object sender, PointerPressedEventArgs e)
     {
         var pos = e.GetPosition(RootGrid);
-        bool onControls = IsPointerInside(ControlsOverlay, pos) || (VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false);
+        bool onControls = IsPointerInside(ControlsOverlay, pos) || IsPointerOverVoluenPopup(pos);
         if (onControls) return;
 
         if (e.ClickCount >= 2) VideoDoubleClicked?.Invoke();
