@@ -13,8 +13,7 @@ using SharpUtils.Linux;
 namespace MediaPlayer;
 
 /// <summary>
-/// Shell principal. Conecta PlayerView + PlaylistView + MpvPlayer +
-/// PlaylistService + KeyBindings. MPRIS se inicializa en App.axaml.cs.
+/// Shell principal. Conecta todos los componentes del reproductor.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -33,23 +32,27 @@ public partial class MainWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        WireUi();
+        WirePlayerControl();
+        WireDragDrop();
         WireMpvWhenReady();
     }
 
-    private void WireUi()
+    private void WirePlayerControl()
     {
         PlayerControl.PlayPauseClicked += OnPlayPause;
         PlayerControl.PrevClicked += OnPrev;
         PlayerControl.NextClicked += OnNext;
-        PlayerControl.LoopClicked += () => _playlist.CycleLoopMode();
+        PlayerControl.LoopClicked += _playlist.CycleLoopMode;
         PlayerControl.AudioButtonClicked += OnShowAudioMenu;
         PlayerControl.VolumeChanged01 += v => Mpv?.SetVolume01(v);
         PlayerControl.MuteToggled += m => Mpv?.SetMute(m);
         PlayerControl.SeekRequested += s => Mpv?.SeekAbsolute(s);
         PlayerControl.VideoSingleClicked += OnPlayPause;
-        PlayerControl.VideoDoubleClicked += ToggleFullscreen;
+        PlayerControl.VideoDoubleClicked += () => ToggleFullscreen();
+    }
 
+    private void WireDragDrop()
+    {
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
@@ -59,24 +62,41 @@ public partial class MainWindow : Window
     {
         while (Mpv == null) await Task.Delay(100);
 
+        // MPRIS nos puede mandar acciones desde el escritorio.
         Mpv.EndReached += OnEndReached;
         Mpv.NextRequested += OnNext;
         Mpv.PrevRequested += OnPrev;
         Mpv.QuitRequested += Close;
         Mpv.RaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
 
+        // Playlist → UI
         _playlist.Changed += () => Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex);
         _playlist.CurrentChanged += _ => Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex);
         _playlist.LoopModeChanged += mode =>
         {
             PlayerControl.SetLoopModeLabel(mode);
-            UpdateMprisLoopStatus(mode);
+            if (Mpv == null) return;
+            Mpv.LoopStatus = mode switch
+            {
+                LoopMode.None => "None",
+                LoopMode.Track => "Track",
+                LoopMode.Playlist => "Playlist",
+                _ => "None"
+            };
+            Mpv.Shuffle = _playlist.Shuffle;
+            MprisService.Update();
         };
 
-        Playlist.ItemDoubleClicked += OnPlaylistItemDoubleClicked;
+        // PlaylistView → acciones
+        Playlist.ItemDoubleClicked += idx =>
+        {
+            _playlist.SetCurrent(idx);
+            LoadCurrentFromPlaylist();
+        };
         Playlist.CloseRequested += () => Playlist.IsVisible = false;
-        Playlist.ClearRequested += () => _playlist.Clear();
+        Playlist.ClearRequested += _playlist.Clear;
 
+        // KeyBindings
         _keys.TogglePlayPause = OnPlayPause;
         _keys.SeekRelative = sec => Mpv?.SeekRelative(sec);
         _keys.VolumeDelta = delta => Mpv?.SetVolume01(Math.Clamp(Mpv.Volume + delta, 0, 1));
@@ -84,11 +104,17 @@ public partial class MainWindow : Window
         _keys.Next = OnNext;
         _keys.Prev = OnPrev;
         _keys.CycleLoopMode = _playlist.CycleLoopMode;
-        _keys.ToggleFullscreen = ToggleFullscreen;
+        _keys.ToggleFullscreen = () => ToggleFullscreen();
         _keys.ExitFullscreen = () => { if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal; };
-        _keys.NextAudioTrack = CycleAudioTrack;
+        _keys.NextAudioTrack = () =>
+        {
+            if (Mpv == null || Mpv.AudioTracks.Count == 0) return;
+            var list = Mpv.AudioTracks;
+            int idx = list.ToList().FindIndex(t => t.IsSelected);
+            Mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
+        };
         _keys.TogglePlaylist = () => Playlist.IsVisible = !Playlist.IsVisible;
-        _keys.Quit = () => Close();
+        _keys.Quit = Close;
 
         PlayerControl.SetLoopModeLabel(_playlist.LoopMode);
     }
@@ -122,6 +148,7 @@ public partial class MainWindow : Window
     private void OnPlayPause()
     {
         if (Mpv == null || !Mpv.IsInitialized) return;
+        // Si no hay archivo cargado, cargar el actual de la playlist.
         if (Mpv.CurrentPath == null && _playlist.Current != null)
         {
             LoadCurrentFromPlaylist();
@@ -138,7 +165,7 @@ public partial class MainWindow : Window
 
     private void OnPrev()
     {
-        // Si pasamos más de 5s, volver al principio del actual (comportamiento típico).
+        // Si pasamos más de 5s, volver al principio del actual.
         if (Mpv != null && Mpv.PositionSec > 5) { Mpv.SeekAbsolute(0); return; }
         int idx = _playlist.GoPrev();
         if (idx >= 0) LoadCurrentFromPlaylist();
@@ -148,14 +175,6 @@ public partial class MainWindow : Window
     {
         if (Mpv == null || Mpv.AudioTracks.Count == 0) return;
         PlayerControl.ShowAudioMenu(Mpv.AudioTracks.ToList(), Mpv.SetAudioTrack);
-    }
-
-    private void CycleAudioTrack()
-    {
-        if (Mpv == null || Mpv.AudioTracks.Count == 0) return;
-        var list = Mpv.AudioTracks;
-        int idx = list.ToList().FindIndex(t => t.IsSelected);
-        Mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
     }
 
     private void OnEndReached()
@@ -177,27 +196,10 @@ public partial class MainWindow : Window
         Mpv.LoadFile(current.Path);
     }
 
-    private void OnPlaylistItemDoubleClicked(int idx)
+    private bool ToggleFullscreen()
     {
-        _playlist.SetCurrent(idx);
-        LoadCurrentFromPlaylist();
-    }
-
-    private void ToggleFullscreen()
-        => WindowState = (WindowState == WindowState.FullScreen) ? WindowState.Normal : WindowState.FullScreen;
-
-    private void UpdateMprisLoopStatus(LoopMode mode)
-    {
-        if (Mpv == null) return;
-        Mpv.LoopStatus = mode switch
-        {
-            LoopMode.None => "None",
-            LoopMode.Track => "Track",
-            LoopMode.Playlist => "Playlist",
-            _ => "None"
-        };
-        Mpv.Shuffle = _playlist.Shuffle;
-        MprisService.Update();
+        WindowState = (WindowState == WindowState.FullScreen) ? WindowState.Normal : WindowState.FullScreen;
+        return WindowState == WindowState.FullScreen;
     }
 
     private void OnKeyDownTunnel(object sender, KeyEventArgs e)
