@@ -73,6 +73,7 @@ public partial class PlayerView : UserControl
         RootGrid.PointerMoved += OnRootPointerMoved;
         RootGrid.PointerExited += (_, _) => HideControls();
         RootGrid.PointerPressed += OnRootPointerPressed;
+        RootGrid.PointerWheelChanged += OnRootPointerWheel;
 
         // Space no activa botones (solo Enter), así no choca con el atajo global.
         foreach (var btn in new[] { PlayPauseBtn, PrevBtn, NextBtn, LoopBtn, AudioBtn, MuteBtn })
@@ -193,6 +194,16 @@ public partial class PlayerView : UserControl
         if (e.ClickCount >= 2) VideoDoubleClicked?.Invoke();
         else VideoSingleClicked?.Invoke();
         ShowControls();
+    }
+
+    private void OnRootPointerWheel(object sender, PointerWheelEventArgs e)
+    {
+        // e.Delta.Y > 0 = scroll arriba, < 0 = scroll abajo
+        if (e.Delta.Y > 0)
+            VolumeChanged01?.Invoke(Math.Clamp(VolumeSlider.Value + 0.02, 0, 1));
+        else if (e.Delta.Y < 0)
+            VolumeChanged01?.Invoke(Math.Clamp(VolumeSlider.Value - 0.02, 0, 1));
+        e.Handled = true;
     }
 
     private void OnPositionChanged(double sec)
