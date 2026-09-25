@@ -22,6 +22,7 @@ public class MpvPlayer : MprisSource, IDisposable
     private Thread _eventThread;
     private volatile bool _running;
     private LibMpv.MpvWakeupCallback _wakeupCb;
+    private bool _eofFired;
 
     public double PositionSec;
     public double DurationSec;
@@ -110,6 +111,7 @@ public class MpvPlayer : MprisSource, IDisposable
         LibMpv.mpv_observe_property(_handle, 7, "media-title", LibMpv.MPV_FORMAT_STRING);
         LibMpv.mpv_observe_property(_handle, 8, "track-list/count", LibMpv.MPV_FORMAT_INT64);
         LibMpv.mpv_observe_property(_handle, 9, "aid", LibMpv.MPV_FORMAT_INT64);
+        LibMpv.mpv_observe_property(_handle, 10, "eof-reached", LibMpv.MPV_FORMAT_FLAG);
     }
 
     private void StartEventLoop()
@@ -288,6 +290,22 @@ public class MpvPlayer : MprisSource, IDisposable
                     Dispatcher.UIThread.Invoke(() => CurrentAudioTrackChanged?.Invoke(CurrentAudioId));
                 }
                 break;
+
+            case "eof-reached":
+                if (prop.format == LibMpv.MPV_FORMAT_FLAG)
+                {
+                    int eof = Marshal.PtrToStructure<int>(prop.data);
+                    if (eof != 0 && !_eofFired)
+                    {
+                        _eofFired = true;
+                        Dispatcher.UIThread.Invoke(() => EndReached?.Invoke());
+                    }
+                    else if (eof == 0)
+                    {
+                        _eofFired = false;
+                    }
+                }
+                break;
         }
     }
 
@@ -338,6 +356,7 @@ public class MpvPlayer : MprisSource, IDisposable
     }
 
     public void PlayPause() => Command("cycle", "pause");
+    public void Play() => SetPropertyString("pause", "no");
     public void SetVolume01(double v01) => SetDoubleProperty("volume", Math.Clamp(v01, 0, 1) * 100.0);
     public void SetMute(bool m) => SetPropertyString("mute", m ? "yes" : "no");
     public void SetAudioTrack(int id) => SetIntProperty("aid", id);

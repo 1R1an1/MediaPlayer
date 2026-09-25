@@ -160,7 +160,13 @@ public partial class MainWindow : Window
 
     private void OnEndReached()
     {
-        if (_playlist.LoopMode == LoopMode.Track) { LoadCurrentFromPlaylist(); return; }
+        // Loop track: seek al principio + play (sin recargar el archivo).
+        if (_playlist.LoopMode == LoopMode.Track)
+        {
+            Mpv?.SeekAbsolute(0);
+            Mpv?.Play();
+            return;
+        }
         OnNext();
     }
 
