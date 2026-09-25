@@ -43,8 +43,12 @@ public class KeyBindings
         Bind(Key.Left, KeyModifiers.Control, () => SeekRelative?.Invoke(-60));
         Bind(Key.Right, KeyModifiers.Control, () => SeekRelative?.Invoke(60));
 
-        Bind(Key.Up, KeyModifiers.None, () => VolumeDelta?.Invoke(0.05));
-        Bind(Key.Down, KeyModifiers.None, () => VolumeDelta?.Invoke(-0.05));
+        Bind(Key.Up, KeyModifiers.None, () => VolumeDelta?.Invoke(0.02));
+        Bind(Key.Down, KeyModifiers.None, () => VolumeDelta?.Invoke(-0.02));
+        Bind(Key.OemMinus, KeyModifiers.None, () => VolumeDelta?.Invoke(-0.02));
+        Bind(Key.OemPlus, KeyModifiers.None, () => VolumeDelta?.Invoke(0.02));
+        Bind(Key.D0, KeyModifiers.None, () => VolumeDelta?.Invoke(0.02));
+        Bind(Key.D9, KeyModifiers.None, () => VolumeDelta?.Invoke(-0.02));
         Bind(Key.M, KeyModifiers.None, () => ToggleMute?.Invoke());
 
         Bind(Key.L, KeyModifiers.None, () => CycleLoopMode?.Invoke());
