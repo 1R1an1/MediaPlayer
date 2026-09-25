@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -89,7 +90,7 @@ public partial class MainWindow : Window
             _playlist.SetCurrent(idx);
             LoadCurrentFromPlaylist();
         };
-        Playlist.CloseRequested += () => PlaylistGrid.IsVisible = false;
+        Playlist.CloseRequested += async () => await HidePlaylist();
         Playlist.ClearRequested += _playlist.Clear;
 
         // KeyBindings → acciones directas
@@ -115,7 +116,13 @@ public partial class MainWindow : Window
             int idx = list.ToList().FindIndex(t => t.IsSelected);
             Mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
         };
-        _keys.TogglePlaylist = () => PlaylistGrid.IsVisible = !PlaylistGrid.IsVisible;
+        _keys.TogglePlaylist = async () =>
+        {
+            if (PlaylistGrid.IsVisible)
+                await HidePlaylist();
+            else
+                await ShowPlaylist();
+        };
         _keys.Quit = Close;
 
         PlayerControl.SetLoopModeLabel(_playlist.LoopMode);
@@ -227,6 +234,56 @@ public partial class MainWindow : Window
         return Array.IndexOf(exts, ext) >= 0;
     }
 
+    private double _playlistWidth = 300;
+    private bool _playlistAnimationRunning = false;
+    private async Task ShowPlaylist()
+    {
+        if (_playlistAnimationRunning) return;
+        _playlistAnimationRunning = true;
+        double targetWidth = _playlistWidth;
+
+        PlaylistGrid.Width = 0;
+        PlaylistGrid.IsVisible = true;
+
+        const int duration = 200;
+        const int frames = 20;
+
+        for (int i = 1; i <= frames; i++)
+        {
+            double t = (double)i / frames;
+            double eased = 1 - Math.Pow(1 - t, 3);
+
+            Dispatcher.UIThread.Invoke(() => PlaylistGrid.Width = targetWidth * eased);
+            await Task.Delay(duration / frames);
+        }
+
+        PlaylistGrid.Width = targetWidth;
+        _playlistAnimationRunning = false;
+    }
+
+    private async Task HidePlaylist()
+    {
+        if (_playlistAnimationRunning) return;
+        _playlistAnimationRunning = true;
+        double startWidth = _playlistWidth;
+
+        const int duration = 200;
+        const int frames = 20;
+
+        for (int i = 1; i <= frames; i++)
+        {
+            double t = (double)i / frames;
+            double eased = 1 - Math.Pow(1 - t, 3);
+
+            Dispatcher.UIThread.Invoke(() => PlaylistGrid.Width = startWidth * (1 - eased));
+            await Task.Delay(duration / frames);
+        }
+
+        PlaylistGrid.Width = 0;
+        PlaylistGrid.IsVisible = false;
+        _playlistAnimationRunning = false;
+    }
+
     bool pressed = false;
     private void Border_PointerReleased(object sender, PointerReleasedEventArgs e) => pressed = false;
     private void Border_PointerPressed(object sender, PointerPressedEventArgs e) => pressed = true;
@@ -235,7 +292,9 @@ public partial class MainWindow : Window
     {
         if (!pressed) return;
         var pos = e.GetPosition(this);
-        if (pos.X < 100 || Width - pos.X < 100) return;
-        PlaylistGrid.Width = Width - pos.X;
+        var finPos = Width - pos.X;
+        if (pos.X < 100 || finPos < 100) return;
+        PlaylistGrid.Width = finPos;
+        _playlistWidth = finPos;
     }
 }
