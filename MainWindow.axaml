@@ -4,7 +4,7 @@
         x:Class="MediaPlayer.MainWindow"
         Title="MediaPlayer"
         Width="854" Height="480"
-        MinWidth="426" MinHeight="240"
+        MinWidth="640" MinHeight="360"
         WindowState="Normal">
 
     <Grid x:Name="RootGrid" ColumnDefinitions="*,auto">

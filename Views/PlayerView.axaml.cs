@@ -14,8 +14,6 @@ namespace MediaPlayer.Views;
 
 /// <summary>
 /// Vista del reproductor: MpvGlControl + overlay con controles.
-/// mpv renderiza via OpenGL a una textura Avalonia; los controles son
-/// un Border encima en el mismo Grid. Sin airspace problem.
 /// </summary>
 public partial class PlayerView : UserControl
 {
@@ -28,18 +26,13 @@ public partial class PlayerView : UserControl
     private bool _canHide = true;
     private bool _canHideVolume = true;
 
-    public event Action PrevClicked;
-    public event Action NextClicked;
-    public event Action PlayPauseClicked;
+    // Eventos que MainWindow necesita (playlist + MPRIS).
+    public event Action NextRequested;
+    public event Action PrevRequested;
     public event Action LoopClicked;
-    public event Action AudioButtonClicked;
-    public event Action<double> VolumeChanged01;
-    public event Action<bool> MuteToggled;
-    public event Action<double> SeekRequested;
-    public event Action VideoDoubleClicked;
-    public event Action VideoSingleClicked;
+    public event Action ToggleFullScreen;
 
-    private bool IsPointerOverVoluenPopup(Point pos) => VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false;
+    private bool IsPointerOverVolumePopup(Point pos) => VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false;
 
     public PlayerView()
     {
@@ -50,21 +43,30 @@ public partial class PlayerView : UserControl
     {
         base.OnAttachedToVisualTree(e);
 
-        PlayPauseBtn.Click += (_, _) => PlayPauseClicked?.Invoke();
-        PrevBtn.Click += (_, _) => PrevClicked?.Invoke();
-        NextBtn.Click += (_, _) => NextClicked?.Invoke();
+        // Botones llaman directo a MpvPlayer.
+        PlayPauseBtn.Click += (_, _) =>
+        {
+            if (Player != null)
+                if (Player.CurrentPath == null)
+                    NextRequested?.Invoke();
+                else if (Player.EofReached) { Player.SeekAbsolute(0); Player.Play(); }
+                else Player.PlayPause();
+            ShowControls();
+        };
+        PrevBtn.Click += (_, _) => PrevRequested?.Invoke();
+        NextBtn.Click += (_, _) => NextRequested?.Invoke();
+        MuteBtn.Click += (_, _) => Player?.SetMute(!Player.IsMuted);
+        AudioBtn.Click += (_, _) => ShowAudioMenu();
         LoopBtn.Click += (_, _) => LoopClicked?.Invoke();
-        AudioBtn.Click += (_, _) => AudioButtonClicked?.Invoke();
-        MuteBtn.Click += (_, _) => MuteToggled?.Invoke(Player?.IsMuted != true);
+        FullScreenBtn.Click += (_, _) => ToggleFullScreen?.Invoke();
 
-        // Seek: Tunnel + handledEventsToo porque el Slider maneja PointerPressed/Released
-        // en sus RepeatButtons internos y no siempre los propaga al padre.
+        // Seek: Tunnel + handledEventsToo porque el Slider no propaga siempre PointerReleased al padre.
         SeekBar.AddHandler(PointerPressedEvent, (_, _) => { if (_seeking) return; _seeking = true; _canHide = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
-        SeekBar.AddHandler(PointerReleasedEvent, (_, _) => { if (!_seeking) return; _seeking = false; _canHide = true; SeekRequested?.Invoke(SeekBar.Value); },
+        SeekBar.AddHandler(PointerReleasedEvent, (_, _) => { if (!_seeking) return; _seeking = false; _canHide = true; Player?.SeekAbsolute(SeekBar.Value); },
             RoutingStrategies.Tunnel, handledEventsToo: true);
 
         SeekBar.ValueChanged += (_, _) => CurrentTimeText.Text = PlaylistItem.FormatTime(SeekBar.Value);
-        VolumeSlider.ValueChanged += (_, _) => VolumeChanged01?.Invoke(VolumeSlider.Value);
+        VolumeSlider.ValueChanged += (_, _) => Player?.SetVolume01(VolumeSlider.Value);
 
         // Hover del botón de volumen → mostrar/ocultar popup.
         VolumeSlider.AddHandler(PointerPressedEvent, (_, _) => { _canHide = false; _canHideVolume = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -80,7 +82,7 @@ public partial class PlayerView : UserControl
             btn.AddHandler(KeyUpEvent, OnButtonKeyUp, RoutingStrategies.Tunnel, handledEventsToo: true);
 
         _hideTimer = new Timer(3000) { AutoReset = false };
-        _hideTimer.Elapsed += (s, ev) => Dispatcher.UIThread.Invoke(HideControls);
+        _hideTimer.Elapsed += (_, _) => Dispatcher.UIThread.Invoke(HideControls);
 
         ShowControls();
         LayoutUpdated += OnFirstLayout;
@@ -128,6 +130,7 @@ public partial class PlayerView : UserControl
             // Mostrar el video cuando mpv carga un archivo, ocultar cuando no hay.
             Player.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
             Player.FileLoaded += () => VideoHost.IsVisible = true;
+            Player.EndReached += () => NextRequested?.Invoke();
 
             VolumeSlider.Value = Player.Volume;
         }
@@ -165,15 +168,13 @@ public partial class PlayerView : UserControl
 
         bool overVolume = !_canHideVolume ||
             IsPointerInside(MuteBtn, pos) ||
-            IsPointerOverVoluenPopup(pos);
-
+            IsPointerOverVolumePopup(pos);
         VolumePopup.IsVisible = overVolume;
 
-        // Durante el seek no tocamos el overlay (evita flicker durante el drag).
         if (_seeking) return;
         if (ControlsOverlay.Opacity == 0)
             ShowControls();
-        else if (IsPointerInside(ControlsOverlay, pos) || IsPointerOverVoluenPopup(pos))
+        else if (IsPointerInside(ControlsOverlay, pos) || IsPointerOverVolumePopup(pos))
         {
             _canHide = false;
             _hideTimer?.Stop();
@@ -188,11 +189,15 @@ public partial class PlayerView : UserControl
     private void OnRootPointerPressed(object sender, PointerPressedEventArgs e)
     {
         var pos = e.GetPosition(RootGrid);
-        bool onControls = IsPointerInside(ControlsOverlay, pos) || IsPointerOverVoluenPopup(pos);
+        bool onControls = IsPointerInside(ControlsOverlay, pos) || IsPointerOverVolumePopup(pos);
         if (onControls) return;
 
-        if (e.ClickCount >= 2) VideoDoubleClicked?.Invoke();
-        else VideoSingleClicked?.Invoke();
+        if (e.ClickCount >= 2) ToggleFullScreen?.Invoke();
+        else if (Player != null && Player.IsInitialized)
+        {
+            if (Player.CurrentPath == null) NextRequested?.Invoke();
+            else Player.PlayPause();
+        }
         ShowControls();
     }
 
@@ -200,9 +205,9 @@ public partial class PlayerView : UserControl
     {
         // e.Delta.Y > 0 = scroll arriba, < 0 = scroll abajo
         if (e.Delta.Y > 0)
-            VolumeChanged01?.Invoke(Math.Clamp(VolumeSlider.Value + 0.02, 0, 1));
+            Player?.SetVolume01(Math.Clamp(VolumeSlider.Value + 0.02, 0, 1));
         else if (e.Delta.Y < 0)
-            VolumeChanged01?.Invoke(Math.Clamp(VolumeSlider.Value - 0.02, 0, 1));
+            Player?.SetVolume01(Math.Clamp(VolumeSlider.Value - 0.02, 0, 1));
         e.Handled = true;
     }
 
@@ -214,7 +219,6 @@ public partial class PlayerView : UserControl
         CurrentTimeText.Text = PlaylistItem.FormatTime(sec);
     }
 
-    // API pública para MainWindow
     public void SetLoopModeLabel(LoopMode mode)
     {
         var muted = Application.Current.FindResource("MutedColor") as Color?;
@@ -224,12 +228,18 @@ public partial class PlayerView : UserControl
         LoopOneIcon.IsVisible = mode == LoopMode.Track;
     }
 
-    public void ShowAudioMenu(List<AudioTrack> tracks, Action<int> onSelected)
+    public void UpdateFullScreenIcons(bool isFullScreen)
     {
-        if (tracks == null || tracks.Count == 0) return;
+        FullScreenIcon.IsVisible = isFullScreen;
+        NoFullScreenIcon.IsVisible = !isFullScreen;
+    }
+
+    private void ShowAudioMenu()
+    {
+        if (Player == null || Player.AudioTracks.Count == 0) return;
 
         var items = new List<MenuItem>();
-        foreach (var t in tracks)
+        foreach (var t in Player.AudioTracks)
         {
             var mi = new MenuItem
             {
@@ -238,7 +248,7 @@ public partial class PlayerView : UserControl
                 ToggleType = MenuItemToggleType.Radio,
             };
             int id = t.Id;
-            mi.Click += (s, e) => onSelected(id);
+            mi.Click += (s, e) => Player.SetAudioTrack(id);
             items.Add(mi);
         }
         var menu = new ContextMenu { ItemsSource = items };

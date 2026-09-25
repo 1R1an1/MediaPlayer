@@ -13,7 +13,8 @@ using SharpUtils.Linux;
 namespace MediaPlayer;
 
 /// <summary>
-/// Shell principal. Conecta todos los componentes del reproductor.
+/// Shell principal. Crea MpvPlayer, se lo pasa a PlayerView, y orquesta
+/// playlist, MPRIS, atajos de teclado y drag&drop.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -37,18 +38,13 @@ public partial class MainWindow : Window
         WireMpvWhenReady();
     }
 
+    // PlayerView → acciones que necesitan MainWindow (playlist + fullscreen)
     private void WirePlayerControl()
     {
-        PlayerControl.PlayPauseClicked += OnPlayPause;
-        PlayerControl.PrevClicked += OnPrev;
-        PlayerControl.NextClicked += OnNext;
+        PlayerControl.NextRequested += OnNext;
+        PlayerControl.PrevRequested += OnPrev;
         PlayerControl.LoopClicked += _playlist.CycleLoopMode;
-        PlayerControl.AudioButtonClicked += OnShowAudioMenu;
-        PlayerControl.VolumeChanged01 += v => Mpv?.SetVolume01(v);
-        PlayerControl.MuteToggled += m => Mpv?.SetMute(m);
-        PlayerControl.SeekRequested += s => Mpv?.SeekAbsolute(s);
-        PlayerControl.VideoSingleClicked += OnPlayPause;
-        PlayerControl.VideoDoubleClicked += () => ToggleFullscreen();
+        PlayerControl.ToggleFullScreen += ToggleFullscreen;
     }
 
     private void WireDragDrop()
@@ -96,15 +92,21 @@ public partial class MainWindow : Window
         Playlist.CloseRequested += () => PlaylistGrid.IsVisible = false;
         Playlist.ClearRequested += _playlist.Clear;
 
-        // KeyBindings
-        _keys.TogglePlayPause = OnPlayPause;
+        // KeyBindings → acciones directas
+        _keys.TogglePlayPause = () =>
+        {
+            if (Mpv == null || !Mpv.IsInitialized) return;
+            if (Mpv.CurrentPath == null && _playlist.Current != null) LoadCurrentFromPlaylist();
+            else if (Mpv.EofReached) { Mpv.SeekAbsolute(0); Mpv.Play(); }
+            else Mpv.PlayPause();
+        };
         _keys.SeekRelative = sec => Mpv?.SeekRelative(sec);
         _keys.VolumeDelta = delta => Mpv?.SetVolume01(Math.Clamp(Mpv.Volume + delta, 0, 1));
         _keys.ToggleMute = () => Mpv?.SetMute(!Mpv.IsMuted);
         _keys.Next = OnNext;
         _keys.Prev = OnPrev;
         _keys.CycleLoopMode = _playlist.CycleLoopMode;
-        _keys.ToggleFullscreen = () => ToggleFullscreen();
+        _keys.ToggleFullscreen = ToggleFullscreen;
         _keys.ExitFullscreen = () => { if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal; };
         _keys.NextAudioTrack = () =>
         {
@@ -145,18 +147,6 @@ public partial class MainWindow : Window
         LoadCurrentFromPlaylist();
     }
 
-    private void OnPlayPause()
-    {
-        if (Mpv == null || !Mpv.IsInitialized) return;
-        // Si no hay archivo cargado, cargar el actual de la playlist.
-        if (Mpv.CurrentPath == null && _playlist.Current != null)
-        {
-            LoadCurrentFromPlaylist();
-            return;
-        }
-        Mpv.PlayPause();
-    }
-
     private void OnNext()
     {
         int idx = _playlist.Advance();
@@ -169,12 +159,6 @@ public partial class MainWindow : Window
         if (Mpv != null && Mpv.PositionSec > 5) { Mpv.SeekAbsolute(0); return; }
         int idx = _playlist.GoPrev();
         if (idx >= 0) LoadCurrentFromPlaylist();
-    }
-
-    private void OnShowAudioMenu()
-    {
-        if (Mpv == null || Mpv.AudioTracks.Count == 0) return;
-        PlayerControl.ShowAudioMenu(Mpv.AudioTracks.ToList(), Mpv.SetAudioTrack);
     }
 
     private void OnEndReached()
@@ -196,10 +180,10 @@ public partial class MainWindow : Window
         Mpv.LoadFile(current.Path);
     }
 
-    private bool ToggleFullscreen()
+    private void ToggleFullscreen()
     {
         WindowState = (WindowState == WindowState.FullScreen) ? WindowState.Normal : WindowState.FullScreen;
-        return WindowState == WindowState.FullScreen;
+        PlayerControl.UpdateFullScreenIcons(WindowState == WindowState.FullScreen);
     }
 
     private void OnKeyDownTunnel(object sender, KeyEventArgs e)

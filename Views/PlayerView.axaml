@@ -11,7 +11,7 @@
         <!-- Popup del slider de volumen. Va AFUERA del overlay para que no
         lo recorten los contenedores chicos. -->
         <Grid x:Name="VolumePopup"
-              Margin="0,0,89,30"
+              Margin="0,0,125,30"
               VerticalAlignment="Bottom"
               HorizontalAlignment="Right"
               IsVisible="False"
@@ -58,16 +58,16 @@
                 <Border Classes="Island" Grid.Column="0">
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <Button Classes="icon" x:Name="PrevBtn" CornerRadius="15" ToolTip.Tip="Anterior (B)">
-                            <Svg Path="Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
+                            <Svg Path="Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
                         </Button>
                         <Button Classes="icon" CornerRadius="15" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pausa (Space)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="PlayIcon" Path="Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
-                                <Svg x:Name="PauseIcon" Path="Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="20" IsVisible="False" />
+                                <Svg x:Name="PlayIcon" Path="Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <Svg x:Name="PauseIcon" Path="Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
                         <Button Classes="icon" CornerRadius="15" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
-                            <Svg Path="Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
+                            <Svg Path="Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
                         </Button>
                     </StackPanel>
                 </Border>
@@ -103,20 +103,26 @@
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <Button Classes="icon" CornerRadius="15" x:Name="MuteBtn" ToolTip.Tip="Mute (M)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="VolIcon" Path="Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
-                                <Svg x:Name="MuteIcon" Path="Svgs/VolumeMute.svg" CurrentColor="{StaticResource AccentColor}" Width="20" IsVisible="False" />
+                                <Svg x:Name="VolIcon" Path="Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <Svg x:Name="MuteIcon" Path="Svgs/VolumeMute.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
 
                         <Button Classes="icon" x:Name="LoopBtn" CornerRadius="15" ToolTip.Tip="Loop (L)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="LoopIcon" Path="Svgs/Loop.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
-                                <Svg x:Name="LoopOneIcon" Path="Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="20" IsVisible="False" />
+                                <Svg x:Name="LoopIcon" Path="Svgs/Loop.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <Svg x:Name="LoopOneIcon" Path="Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
 
                         <Button Classes="icon" x:Name="AudioBtn" CornerRadius="15" ToolTip.Tip="Pista de audio (J)">
-                            <Svg Path="Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
+                            <Svg Path="Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                        </Button>
+                        <Button Classes="icon" x:Name="FullScreenBtn" CornerRadius="15" ToolTip.Tip="Pantalla completa (F)">
+                            <Grid HorizontalAlignment="Center">
+                                <Svg x:Name="FullScreenIcon" Path="Svgs/Fullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <Svg x:Name="NoFullScreenIcon" Path="Svgs/NoFullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
+                            </Grid>
                         </Button>
                     </StackPanel>
                 </Border>

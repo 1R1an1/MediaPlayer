@@ -12,9 +12,7 @@ using SharpUtils.Linux;
 namespace MediaPlayer.Services;
 
 /// <summary>
-/// Wrapper sobre libmpv. Modo render API (OpenGL interop) — mpv no crea
-/// ventana propia, renderiza a un FBO que le pasamos desde MpvGlControl.
-/// Hereda de MprisSource para integración con el escritorio.
+/// Wrapper sobre libmpv en modo render API. Hereda de MprisSource.
 /// </summary>
 public class MpvPlayer : MprisSource, IDisposable
 {
@@ -24,6 +22,8 @@ public class MpvPlayer : MprisSource, IDisposable
     private LibMpv.MpvWakeupCallback _wakeupCb;
     private bool _eofFired;
 
+    // Estado público (accedido desde el thread de eventos y desde UI).
+    public bool EofReached;
     public double PositionSec;
     public double DurationSec;
     public bool IsMuted;
@@ -34,19 +34,16 @@ public class MpvPlayer : MprisSource, IDisposable
     public bool IsInitialized => _handle != IntPtr.Zero;
     public IntPtr MpvHandle => _handle;
 
+    // Eventos de estado. Disparados en el UI thread. Solo los que UI necesita.
     public event Action<bool> IsPlayingChanged;
     public event Action<double> PositionChanged;
     public event Action<double> DurationChanged;
     public event Action<double> VolumeChanged;
-    public event Action<double> RateChanged;
     public event Action<bool> MuteChanged;
     public event Action<string> PathChanged;
-    public event Action<string> MediaTitleChanged;
-    public event Action<List<AudioTrack>> AudioTracksChanged;
-    public event Action<int> CurrentAudioTrackChanged;
+    public event Action FileLoaded;
     public event Action EndReached;
     public event Action<string> ErrorOccurred;
-    public event Action FileLoaded;
 
     // MPRIS nos avisa via estos cuando el escritorio manda Next/Prev/Quit/Raise
     public event Action NextRequested;
@@ -61,8 +58,7 @@ public class MpvPlayer : MprisSource, IDisposable
 
         _handle = LibMpv.mpv_create();
         if (_handle == IntPtr.Zero)
-            throw new InvalidOperationException(
-                "mpv_create() falló. ¿Está instalado libmpv2?");
+            throw new InvalidOperationException("mpv_create() falló. ¿Está instalado libmpv2?");
 
         // vo=libmpv: mpv no crea ventana, render via render API.
         SetOptionString("vo", "libmpv");
@@ -120,11 +116,7 @@ public class MpvPlayer : MprisSource, IDisposable
         LibMpv.mpv_set_wakeup_callback(_handle, _wakeupCb, IntPtr.Zero);
 
         _running = true;
-        _eventThread = new Thread(EventLoop)
-        {
-            IsBackground = true,
-            Name = "mpv-events"
-        };
+        _eventThread = new Thread(EventLoop) { IsBackground = true, Name = "mpv-events" };
         _eventThread.Start();
     }
 
@@ -174,10 +166,6 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     string msg = GetStringProperty("error-string") ?? "unknown error";
                     Dispatcher.UIThread.Invoke(() => ErrorOccurred?.Invoke(msg));
-                }
-                else if (ef.reason == LibMpv.MPV_END_FILE_REASON_EOF)
-                {
-                    Dispatcher.UIThread.Invoke(() => EndReached?.Invoke());
                 }
                 break;
 
@@ -245,11 +233,7 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     Rate = Marshal.PtrToStructure<double>(prop.data);
                     base.Rate = Rate;
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        RateChanged?.Invoke(Rate);
-                        MprisService.Update();
-                    });
+                    Dispatcher.UIThread.Invoke(MprisService.Update);
                 }
                 break;
 
@@ -270,11 +254,7 @@ public class MpvPlayer : MprisSource, IDisposable
             case "media-title":
                 MediaTitle = ReadPropString(prop);
                 Title = MediaTitle;
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    MediaTitleChanged?.Invoke(MediaTitle);
-                    MprisService.Update();
-                });
+                Dispatcher.UIThread.Invoke(MprisService.Update);
                 break;
 
             case "track-list/count":
@@ -285,9 +265,7 @@ public class MpvPlayer : MprisSource, IDisposable
                 if (prop.format == LibMpv.MPV_FORMAT_INT64)
                 {
                     CurrentAudioId = (int)Marshal.PtrToStructure<long>(prop.data);
-                    foreach (var t in AudioTracks)
-                        t.IsSelected = t.Id == CurrentAudioId;
-                    Dispatcher.UIThread.Invoke(() => CurrentAudioTrackChanged?.Invoke(CurrentAudioId));
+                    foreach (var t in AudioTracks) t.IsSelected = t.Id == CurrentAudioId;
                 }
                 break;
 
@@ -295,15 +273,13 @@ public class MpvPlayer : MprisSource, IDisposable
                 if (prop.format == LibMpv.MPV_FORMAT_FLAG)
                 {
                     int eof = Marshal.PtrToStructure<int>(prop.data);
+                    EofReached = eof != 0;
                     if (eof != 0 && !_eofFired)
                     {
                         _eofFired = true;
                         Dispatcher.UIThread.Invoke(() => EndReached?.Invoke());
                     }
-                    else if (eof == 0)
-                    {
-                        _eofFired = false;
-                    }
+                    else if (eof == 0) _eofFired = false;
                 }
                 break;
         }
@@ -342,19 +318,10 @@ public class MpvPlayer : MprisSource, IDisposable
 
         AudioTracks = tracks;
         CurrentAudioId = currentAid;
-        Dispatcher.UIThread.Invoke(() =>
-        {
-            AudioTracksChanged?.Invoke(tracks);
-            CurrentAudioTrackChanged?.Invoke(currentAid);
-        });
     }
 
     // Control API
-    public void LoadFile(string path)
-    {
-        if (IsInitialized) Command("loadfile", path, "replace");
-    }
-
+    public void LoadFile(string path) { if (IsInitialized) Command("loadfile", path, "replace"); }
     public void PlayPause() => Command("cycle", "pause");
     public void Play() => SetPropertyString("pause", "no");
     public void SetVolume01(double v01) => SetDoubleProperty("volume", Math.Clamp(v01, 0, 1) * 100.0);
