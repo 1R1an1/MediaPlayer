@@ -217,9 +217,9 @@ public partial class PlayerView : UserControl
     // API pública para MainWindow
     public void SetLoopModeLabel(LoopMode mode)
     {
-        var muted = Application.Current.FindResource("MutedBrush") as Brush;
-        var accent = Application.Current.FindResource("AccentBrush") as Brush;
-        LoopIcon.Fill = mode == LoopMode.None ? muted : accent;
+        var muted = Application.Current.FindResource("MutedColor") as Color?;
+        var accent = Application.Current.FindResource("AccentColor") as Color?;
+        LoopIcon.CurrentColor = mode == LoopMode.None ? muted : accent;
         LoopIcon.IsVisible = mode != LoopMode.Track;
         LoopOneIcon.IsVisible = mode == LoopMode.Track;
     }
