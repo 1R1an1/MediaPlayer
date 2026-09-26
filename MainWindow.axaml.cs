@@ -44,7 +44,7 @@ public partial class MainWindow : Window
     {
         PlayerControl.NextRequested += OnNext;
         PlayerControl.PrevRequested += OnPrev;
-        PlayerControl.LoopClicked += _playlist.CycleLoopMode;
+        PlayerControl.LoopClicked += CycleLoopMode;
         PlayerControl.ToggleFullScreen += ToggleFullscreen;
     }
 
@@ -68,15 +68,7 @@ public partial class MainWindow : Window
 
 
         // MPRIS: cambios de props desde el escritorio → sincronizar hacia la app.
-        Mpv.LoopChangedFromMpris += loop =>
-        {
-            _playlist.LoopMode = loop switch
-            {
-                "Track" => LoopMode.Track,
-                "Playlist" => LoopMode.Playlist,
-                _ => LoopMode.None
-            };
-        };
+        Mpv.LoopChangedFromMpris += SetLoopMode;
         Mpv.VolumeChangedFromMpris += Mpv.SetVolume01;
         Mpv.ShuffleChangedFromMpris += s => _playlist.Shuffle = s;
 
@@ -86,20 +78,6 @@ public partial class MainWindow : Window
         // Playlist → UI + MPRIS capabilities
         _playlist.Changed += () => { Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex); UpdateMprisState(); };
         _playlist.CurrentChanged += _ => { Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex); UpdateMprisState(); };
-        _playlist.LoopModeChanged += mode =>
-        {
-            PlayerControl.SetLoopModeLabel(mode);
-            if (Mpv == null) return;
-            Mpv.LoopStatus = mode switch
-            {
-                LoopMode.None => "None",
-                LoopMode.Track => "Track",
-                LoopMode.Playlist => "Playlist",
-                _ => "None"
-            };
-            Mpv.Shuffle = _playlist.Shuffle;
-            UpdateMprisState();
-        };
 
         // PlaylistView → acciones
         Playlist.ItemDoubleClicked += idx =>
@@ -123,7 +101,7 @@ public partial class MainWindow : Window
         _keys.ToggleMute = () => Mpv?.SetMute(!Mpv.IsMuted);
         _keys.Next = OnNext;
         _keys.Prev = OnPrev;
-        _keys.CycleLoopMode = _playlist.CycleLoopMode;
+        _keys.CycleLoopMode = CycleLoopMode;
         _keys.ToggleFullscreen = ToggleFullscreen;
         _keys.ExitFullscreen = () => { if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal; };
         _keys.NextAudioTrack = () =>
@@ -156,7 +134,6 @@ public partial class MainWindow : Window
         MprisService.capabilities.CanPlay = _playlist.Current != null;
         MprisService.capabilities.CanPause = _playlist.Current != null;
         MprisService.capabilities.CanSeek = _playlist.Current != null;
-        MprisService.capabilities.CanControl = _playlist.Current != null;
         MprisService.Update();
     }
 
@@ -211,6 +188,36 @@ public partial class MainWindow : Window
         }
         OnNext();
     }
+
+    public void CycleLoopMode() => SetLoopMode(_playlist.LoopMode switch
+    {
+        LoopMode.None => LoopMode.Track,
+        LoopMode.Track => LoopMode.Playlist,
+        _ => LoopMode.None
+    });
+
+    private void SetLoopMode(LoopMode mode)
+    {
+        _playlist.LoopMode = mode;
+        PlayerControl.SetLoopModeLabel(mode);
+        if (Mpv == null) return;
+        Mpv.LoopStatus = mode switch
+        {
+            LoopMode.None => "None",
+            LoopMode.Track => "Track",
+            LoopMode.Playlist => "Playlist",
+            _ => "None"
+        };
+        Mpv.Shuffle = _playlist.Shuffle;
+        UpdateMprisState();
+    }
+
+    private void SetLoopMode(string mode) => SetLoopMode(mode switch
+    {
+        "Track" => LoopMode.Track,
+        "Playlist" => LoopMode.Playlist,
+        _ => LoopMode.None
+    });
 
     private void LoadCurrentFromPlaylist()
     {

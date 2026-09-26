@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using MediaPlayer.Models;
 
 namespace MediaPlayer.Services;
@@ -7,13 +10,12 @@ namespace MediaPlayer.Services;
 /// <summary>Cola de reproducción. Maneja índice actual, Next/Prev según LoopMode y shuffle.</summary>
 public class PlaylistService
 {
-    private readonly List<PlaylistItem> _items = new List<PlaylistItem>();
+    private readonly List<PlaylistItem> _originalItems = new();
+    private readonly List<PlaylistItem> _items = new();
     private int _currentIndex = -1;
     private LoopMode _loopMode = LoopMode.None;
     private bool _shuffle;
-    private List<int> _shuffleOrder = new List<int>();
-    private int _shufflePos = -1;
-    private readonly Random _rng = new Random();
+    private readonly Random _rng = new();
 
     public IReadOnlyList<PlaylistItem> Items => _items;
     public int Count => _items.Count;
@@ -23,12 +25,7 @@ public class PlaylistService
     public LoopMode LoopMode
     {
         get => _loopMode;
-        set
-        {
-            if (_loopMode == value) return;
-            _loopMode = value;
-            LoopModeChanged?.Invoke(value);
-        }
+        set { if (_loopMode != value) _loopMode = value; }
     }
 
     public bool Shuffle
@@ -38,21 +35,20 @@ public class PlaylistService
         {
             if (_shuffle == value) return;
             _shuffle = value;
-            if (_shuffle) RebuildShuffleOrder();
-            ShuffleChanged?.Invoke(value);
+            ApplyShuffle();
         }
     }
 
     public event Action Changed;
     public event Action<int> CurrentChanged;
-    public event Action<LoopMode> LoopModeChanged;
-    public event Action<bool> ShuffleChanged;
 
     public void Add(string path, string title = null)
     {
-        _items.Add(new PlaylistItem(path, title));
+        var item = new PlaylistItem(path, title);
+        _originalItems.Add(item);
+        _items.Add(item);
         if (_currentIndex < 0) { _currentIndex = 0; CurrentChanged?.Invoke(_currentIndex); }
-        if (_shuffle) RebuildShuffleOrder();
+        if (_shuffle) ApplyShuffle();
         MarkCurrent();
         Changed?.Invoke();
     }
@@ -60,9 +56,14 @@ public class PlaylistService
     public void AddRange(IEnumerable<string> paths)
     {
         bool firstLoad = _items.Count == 0;
-        foreach (var p in paths) _items.Add(new PlaylistItem(p));
+        foreach (var p in paths)
+        {
+            var item = new PlaylistItem(p);
+            _originalItems.Add(item);
+            _items.Add(item);
+        }
         if (firstLoad && _items.Count > 0) { _currentIndex = 0; CurrentChanged?.Invoke(_currentIndex); }
-        if (_shuffle) RebuildShuffleOrder();
+        if (_shuffle) ApplyShuffle();
         MarkCurrent();
         Changed?.Invoke();
     }
@@ -70,7 +71,9 @@ public class PlaylistService
     public void RemoveAt(int index)
     {
         if (index < 0 || index >= _items.Count) return;
+        var item = _items[index];
         _items.RemoveAt(index);
+        _originalItems.Remove(item);
 
         if (_currentIndex > index) _currentIndex--;
         else if (_currentIndex == index)
@@ -78,7 +81,6 @@ public class PlaylistService
             if (_currentIndex >= _items.Count) _currentIndex = _items.Count - 1;
             CurrentChanged?.Invoke(_currentIndex);
         }
-        if (_shuffle) RebuildShuffleOrder();
         MarkCurrent();
         Changed?.Invoke();
     }
@@ -86,27 +88,9 @@ public class PlaylistService
     public void Clear()
     {
         _items.Clear();
+        _originalItems.Clear();
         _currentIndex = -1;
-        _shuffleOrder.Clear();
-        _shufflePos = -1;
         CurrentChanged?.Invoke(_currentIndex);
-        Changed?.Invoke();
-    }
-
-    public void Move(int from, int to)
-    {
-        if (from < 0 || from >= _items.Count || to < 0 || to >= _items.Count || from == to) return;
-
-        var item = _items[from];
-        _items.RemoveAt(from);
-        _items.Insert(to, item);
-
-        if (_currentIndex == from) _currentIndex = to;
-        else if (from < _currentIndex && to >= _currentIndex) _currentIndex--;
-        else if (from > _currentIndex && to <= _currentIndex) _currentIndex++;
-
-        if (_shuffle) RebuildShuffleOrder();
-        MarkCurrent();
         Changed?.Invoke();
     }
 
@@ -114,7 +98,6 @@ public class PlaylistService
     {
         if (index < 0 || index >= _items.Count || _currentIndex == index) return;
         _currentIndex = index;
-        if (_shuffle) _shufflePos = _shuffleOrder.IndexOf(index);
         MarkCurrent();
         CurrentChanged?.Invoke(_currentIndex);
     }
@@ -123,22 +106,6 @@ public class PlaylistService
     {
         if (_items.Count == 0) return -1;
         if (_loopMode == LoopMode.Track && _currentIndex >= 0) return _currentIndex;
-
-        if (_shuffle)
-        {
-            if (_shuffleOrder.Count == 0) RebuildShuffleOrder();
-            int nextPos = _shufflePos + 1;
-            if (nextPos >= _shuffleOrder.Count)
-            {
-                if (_loopMode == LoopMode.Playlist)
-                {
-                    RebuildShuffleOrder();
-                    return _shuffleOrder.Count > 0 ? _shuffleOrder[0] : -1;
-                }
-                return -1;
-            }
-            return _shuffleOrder[nextPos];
-        }
 
         int next = _currentIndex + 1;
         if (next < _items.Count) return next;
@@ -149,13 +116,6 @@ public class PlaylistService
     {
         if (_items.Count == 0) return -1;
         if (_loopMode == LoopMode.Track && _currentIndex >= 0) return _currentIndex;
-
-        if (_shuffle)
-        {
-            int prevPos = _shufflePos - 1;
-            if (prevPos < 0) return _loopMode == LoopMode.Playlist ? _shuffleOrder[_shuffleOrder.Count - 1] : -1;
-            return _shuffleOrder[prevPos];
-        }
 
         int prev = _currentIndex - 1;
         if (prev >= 0) return prev;
@@ -178,36 +138,49 @@ public class PlaylistService
         return prev;
     }
 
-    public void CycleLoopMode()
+    /// <summary>
+    /// Reordena _items aleatoriamente si _shuffle es true, o restaura el orden
+    /// original si es false. Mantiene el item actual seleccionado.
+    /// </summary>
+    private void ApplyShuffle()
     {
-        LoopMode = _loopMode switch
-        {
-            LoopMode.None => LoopMode.Track,
-            LoopMode.Track => LoopMode.Playlist,
-            _ => LoopMode.None
-        };
-    }
+        var current = Current;
 
-    private void RebuildShuffleOrder()
-    {
-        _shuffleOrder.Clear();
-        for (int i = 0; i < _items.Count; i++) _shuffleOrder.Add(i);
-
-        // Fisher-Yates
-        for (int i = _shuffleOrder.Count - 1; i > 0; i--)
+        if (_shuffle)
         {
-            int j = _rng.Next(i + 1);
-            (_shuffleOrder[i], _shuffleOrder[j]) = (_shuffleOrder[j], _shuffleOrder[i]);
+            // Copiar originales y mezclar (Fisher-Yates)
+            _items.Clear();
+            _items.AddRange(_originalItems);
+            for (int i = _items.Count - 1; i > 0; i--)
+            {
+                int j = _rng.Next(i + 1);
+                (_items[i], _items[j]) = (_items[j], _items[i]);
+            }
+
+            // Mover el current al principio para que no se repita inmediatamente.
+            if (current != null)
+            {
+                _items.Remove(current);
+                _items.Insert(0, current);
+                _currentIndex = 0;
+            }
+        }
+        else
+        {
+            // Restaurar orden original
+            _items.Clear();
+            _items.AddRange(_originalItems);
         }
 
-        // El current va primero en el orden shuffle.
-        if (_currentIndex >= 0 && _currentIndex < _items.Count)
+        // Actualizar el índice del current en la lista nueva
+        if (current != null)
         {
-            _shuffleOrder.Remove(_currentIndex);
-            _shuffleOrder.Insert(0, _currentIndex);
-            _shufflePos = 0;
+            int newIdx = _items.IndexOf(current);
+            if (newIdx >= 0) _currentIndex = newIdx;
         }
-        else _shufflePos = -1;
+
+        MarkCurrent();
+        Changed?.Invoke();
     }
 
     private void MarkCurrent()
