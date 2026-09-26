@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using Avalonia.Threading;
@@ -28,7 +31,6 @@ public class MpvPlayer : MprisSource, IDisposable
     public double DurationSec;
     public bool IsMuted;
     public string CurrentPath;
-    public string MediaTitle;
     public List<AudioTrack> AudioTracks = new List<AudioTrack>();
     public int CurrentAudioId = -1;
     public bool IsInitialized => _handle != IntPtr.Zero;
@@ -111,6 +113,7 @@ public class MpvPlayer : MprisSource, IDisposable
         LibMpv.mpv_observe_property(_handle, 8, "track-list/count", LibMpv.MPV_FORMAT_INT64);
         LibMpv.mpv_observe_property(_handle, 9, "aid", LibMpv.MPV_FORMAT_INT64);
         LibMpv.mpv_observe_property(_handle, 10, "eof-reached", LibMpv.MPV_FORMAT_FLAG);
+        LibMpv.mpv_observe_property(_handle, 11, "metadata/list/count", LibMpv.MPV_FORMAT_INT64);
     }
 
     private void StartEventLoop()
@@ -153,6 +156,7 @@ public class MpvPlayer : MprisSource, IDisposable
 
             case LibMpv.MPV_EVENT_FILE_LOADED:
                 LoadTrackList();
+                LoadCover();
                 DurationSec = GetDoubleProperty("duration");
                 PositionSec = GetDoubleProperty("time-pos");
                 Dispatcher.UIThread.Invoke(() =>
@@ -246,13 +250,16 @@ public class MpvPlayer : MprisSource, IDisposable
                 break;
 
             case "media-title":
-                MediaTitle = ReadPropString(prop);
-                Title = MediaTitle;
+                Title = ReadPropString(prop);
                 MprisService.Update();
                 break;
 
             case "track-list/count":
                 LoadTrackList();
+                break;
+
+            case "metadata/list/count":
+                LoadMetadata();
                 break;
 
             case "aid":
@@ -287,6 +294,83 @@ public class MpvPlayer : MprisSource, IDisposable
         return Marshal.PtrToStringUTF8(strPtr);
     }
 
+    private void LoadMetadata()
+    {
+        // Si el formato soporta tags, mpv los expone en metadata/list/N/key y value.
+        int count = GetIntProperty("metadata/list/count");
+        for (int i = 0; i < count; i++)
+        {
+            string key = GetStringProperty($"metadata/list/{i}/key");
+            string val = GetStringProperty($"metadata/list/{i}/value");
+            if (string.IsNullOrEmpty(key)) continue;
+            if (key.Equals("artist", StringComparison.OrdinalIgnoreCase)) Artist = val;
+            else if (key.Equals("title", StringComparison.OrdinalIgnoreCase)) Title = val ?? Title;
+        }
+        MprisService.Update();
+    }
+
+    private void LoadCover()
+    {
+        if (string.IsNullOrEmpty(CurrentPath) || !File.Exists(CurrentPath) || !CurrentPath.EndsWith(".mkv"))
+        {
+            CoverBytes = null;
+            CoverHashHex = string.Empty;
+            return;
+        }
+
+        try
+        {
+            // ffmpeg -dump_attachment:t "" vuelca todos los attachments a la carpeta actual.
+            // Usamos una carpeta temporal para no llenar el directorio del usuario.
+            string tempDir = Path.Combine(Path.GetTempPath(), $"mpv_cover_{Guid.NewGuid()}");
+            Directory.CreateDirectory(tempDir);
+
+            var extract = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = $"-dump_attachment:t \"\" -i \"{CurrentPath}\" -y -loglevel quiet",
+                    WorkingDirectory = tempDir,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+            extract.Start();
+            extract.WaitForExit(5000);
+
+            // Buscar cualquier archivo de imagen en la carpeta temporal.
+            string[] imageExts = { ".webp", ".jpg", ".jpeg", ".png", ".bmp" };
+            string coverFile = Path.Combine(tempDir, "cover.webp");
+
+            if (File.Exists(coverFile))
+            {
+                byte[] bytes = File.ReadAllBytes(coverFile);
+
+                // Calcular hash MD5 de los bytes para el dedup de MPRIS.
+                using var md5 = MD5.Create();
+                string hash = BitConverter.ToString(md5.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+
+                CoverBytes = bytes;
+                CoverHashHex = hash;
+            }
+            else
+            {
+                CoverBytes = null;
+                CoverHashHex = string.Empty;
+            }
+
+            // Limpiar carpeta temporal
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+        catch
+        {
+            CoverBytes = null;
+            CoverHashHex = string.Empty;
+        }
+        MprisService.Update();
+    }
+
     private void LoadTrackList()
     {
         var tracks = new List<AudioTrack>();
@@ -318,6 +402,7 @@ public class MpvPlayer : MprisSource, IDisposable
     public void LoadFile(string path) { if (IsInitialized) Command("loadfile", path, "replace"); }
     public void PlayPause() => Command("cycle", "pause");
     public void Play() => SetPropertyString("pause", "no");
+    public void Pause() => SetPropertyString("pause", "yes");
     public void SetVolume01(double v01) => SetDoubleProperty("volume", Math.Clamp(v01, 0, 1) * 100.0);
     public void SetMute(bool m) => SetPropertyString("mute", m ? "yes" : "no");
     public void SetAudioTrack(int id) => SetIntProperty("aid", id);
