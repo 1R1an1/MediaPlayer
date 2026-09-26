@@ -187,4 +187,62 @@ public class PlaylistService
     {
         for (int i = 0; i < _items.Count; i++) _items[i].IsCurrent = (i == _currentIndex);
     }
+
+    /// <summary>
+    /// Extrae duración y cover de cada archivo en un thread aparte.
+    /// Dispara Changed después de cada item para que la UI se actualice.
+    /// </summary>
+    public void ProbeAll()
+    {
+        var items = new List<PlaylistItem>(_originalItems);
+        foreach (var item in items)
+        {
+            try
+            {
+                // Duración con ffprobe
+                var probe = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "ffprobe",
+                        Arguments = $"-v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{item.Path}\"",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    }
+                };
+                probe.Start();
+                string durStr = probe.StandardOutput.ReadToEnd().Trim();
+                probe.WaitForExit(5000);
+
+                if (double.TryParse(durStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double dur))
+                    item.Duration = TimeSpan.FromSeconds(dur);
+
+                // Cover con ffmpeg
+                string tempDir = Path.Combine(Path.GetTempPath(), $"mpv_pl_{Guid.NewGuid()}");
+                Directory.CreateDirectory(tempDir);
+
+                var extract = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "ffmpeg",
+                        Arguments = $"-dump_attachment:t \"\" -i \"{item.Path}\" -y -loglevel quiet",
+                        WorkingDirectory = tempDir,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    }
+                };
+                extract.Start();
+                extract.WaitForExit(5000);
+
+                string coverFile = Path.Combine(tempDir, "cover.webp");
+                if (File.Exists(coverFile))
+                    item.CoverBytes = File.ReadAllBytes(coverFile);
+
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+            catch { }
+        }
+    }
 }

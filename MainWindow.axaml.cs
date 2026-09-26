@@ -160,6 +160,7 @@ public partial class MainWindow : Window
 
         _playlist.Clear();
         _playlist.AddRange(files.Select(f => f.Path.LocalPath));
+        _playlist.ProbeAll();
         LoadCurrentFromPlaylist();
     }
 
@@ -273,67 +274,16 @@ public partial class MainWindow : Window
         return Array.IndexOf(exts, ext) >= 0;
     }
 
-    private double _playlistWidth = 300;
-    private bool _playlistAnimationRunning = false;
     private async Task ShowPlaylist()
     {
-        if (_playlistAnimationRunning) return;
-        _playlistAnimationRunning = true;
-        double targetWidth = _playlistWidth;
-
-        PlaylistGrid.Width = 0;
         PlaylistGrid.IsVisible = true;
-
-        const int duration = 200;
-        const int frames = 20;
-
-        for (int i = 1; i <= frames; i++)
-        {
-            double t = (double)i / frames;
-            double eased = 1 - Math.Pow(1 - t, 3);
-
-            Dispatcher.UIThread.Invoke(() => PlaylistGrid.Width = targetWidth * eased);
-            await Task.Delay(duration / frames);
-        }
-
-        PlaylistGrid.Width = targetWidth;
-        _playlistAnimationRunning = false;
+        PlaylistGrid.Opacity = 1;
     }
 
     private async Task HidePlaylist()
     {
-        if (_playlistAnimationRunning) return;
-        _playlistAnimationRunning = true;
-        double startWidth = _playlistWidth;
-
-        const int duration = 200;
-        const int frames = 20;
-
-        for (int i = 1; i <= frames; i++)
-        {
-            double t = (double)i / frames;
-            double eased = 1 - Math.Pow(1 - t, 3);
-
-            Dispatcher.UIThread.Invoke(() => PlaylistGrid.Width = startWidth * (1 - eased));
-            await Task.Delay(duration / frames);
-        }
-
-        PlaylistGrid.Width = 0;
+        PlaylistGrid.Opacity = 0;
+        await Task.Delay(250);
         PlaylistGrid.IsVisible = false;
-        _playlistAnimationRunning = false;
-    }
-
-    bool pressed = false;
-    private void Border_PointerReleased(object sender, PointerReleasedEventArgs e) => pressed = false;
-    private void Border_PointerPressed(object sender, PointerPressedEventArgs e) => pressed = true;
-
-    private void Border_PointerMoved(object sender, PointerEventArgs e)
-    {
-        if (!pressed) return;
-        var pos = e.GetPosition(this);
-        var finPos = Width - pos.X;
-        if (pos.X < 100 || finPos < 100) return;
-        PlaylistGrid.Width = finPos;
-        _playlistWidth = finPos;
     }
 }

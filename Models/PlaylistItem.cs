@@ -1,21 +1,52 @@
 using System;
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.CompilerServices;
+using Avalonia.Media.Imaging;
 
 namespace MediaPlayer.Models;
 
-public class PlaylistItem
+public class PlaylistItem : INotifyPropertyChanged
 {
     public string Path { get; set; }
-    public string Title { get; set; }
-    public TimeSpan Duration { get; set; }
-    public bool IsCurrent { get; set; }
+
+    private string _title;
+    public string Title
+    {
+        get => _title;
+        set { _title = value; OnPropertyChanged(); }
+    }
+
+    private TimeSpan _duration;
+    public TimeSpan Duration
+    {
+        get => _duration;
+        set { _duration = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationText)); }
+    }
+
+    private bool _isCurrent;
+    public bool IsCurrent
+    {
+        get => _isCurrent;
+        set { _isCurrent = value; OnPropertyChanged(); }
+    }
+
+    private byte[] _coverBytes;
+    public byte[] CoverBytes
+    {
+        get => _coverBytes;
+        set { _coverBytes = value; OnPropertyChanged(); OnPropertyChanged(nameof(CoverMap)); }
+    }
+
+    public Bitmap CoverMap => new Bitmap(new MemoryStream(_coverBytes));
 
     public string DurationText => (Duration == default) ? "--:--" : FormatTime(Duration.TotalSeconds);
 
     public PlaylistItem(string path, string title = null, TimeSpan duration = default)
     {
         Path = path;
-        Title = title ?? System.IO.Path.GetFileNameWithoutExtension(path);
-        Duration = duration;
+        _title = title ?? System.IO.Path.GetFileNameWithoutExtension(path);
+        _duration = duration;
     }
 
     /// <summary>Formatea segundos como "m:ss" o "h:mm:ss".</summary>
@@ -25,4 +56,8 @@ public class PlaylistItem
         var ts = TimeSpan.FromSeconds(seconds);
         return ts.TotalHours >= 1 ? string.Format("{0:h\\:mm\\:ss}", ts) : string.Format("{0:m\\:ss}", ts);
     }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

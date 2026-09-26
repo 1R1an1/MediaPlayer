@@ -1,21 +1,28 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:v="clr-namespace:MediaPlayer.Views"
+        xmlns:v="using:MediaPlayer.Views"
         x:Class="MediaPlayer.MainWindow"
         Title="MediaPlayer"
         Width="854" Height="480"
         MinWidth="640" MinHeight="360"
         WindowState="Normal">
 
-    <Grid x:Name="RootGrid" ColumnDefinitions="*,auto">
+    <Grid x:Name="RootGrid">
 
         <!-- Player (video + overlay) -->
         <v:PlayerView Grid.Column="0" x:Name="PlayerControl" />
 
         <!-- Playlist lateral -->
-        <Grid Grid.Column="1" ColumnDefinitions="3,*" x:Name="PlaylistGrid" IsVisible="False" >
-            <Border Width="3" Background="{StaticResource BorderBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="0" Cursor="SizeWestEast" PointerPressed="Border_PointerPressed" PointerMoved="Border_PointerMoved" PointerReleased="Border_PointerReleased"/>
-            <v:PlaylistView Grid.Column="1" x:Name="Playlist"/>
+        <Grid x:Name="PlaylistGrid" Background="#a000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" IsVisible="False">
+            <Grid.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+                </Transitions>
+            </Grid.Transitions>
+
+            <Border BorderBrush="#333" BorderThickness="3" Margin="200, 50" CornerRadius="15" ClipToBounds="True">
+                <v:PlaylistView CornerRadius="15" x:Name="Playlist"/>
+            </Border>
         </Grid>
     </Grid>
 </Window>
