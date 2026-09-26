@@ -66,9 +66,26 @@ public partial class MainWindow : Window
         Mpv.QuitRequested += Close;
         Mpv.RaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
 
-        // Playlist → UI
-        _playlist.Changed += () => Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex);
-        _playlist.CurrentChanged += _ => Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex);
+
+        // MPRIS: cambios de props desde el escritorio → sincronizar hacia la app.
+        Mpv.LoopChangedFromMpris += loop =>
+        {
+            _playlist.LoopMode = loop switch
+            {
+                "Track" => LoopMode.Track,
+                "Playlist" => LoopMode.Playlist,
+                _ => LoopMode.None
+            };
+        };
+        Mpv.VolumeChangedFromMpris += Mpv.SetVolume01;
+        Mpv.ShuffleChangedFromMpris += s => _playlist.Shuffle = s;
+
+        // Cuando mpv carga/descarga un archivo, actualizar capabilities.
+        Mpv.PathChanged += _ => UpdateMprisState();
+
+        // Playlist → UI + MPRIS capabilities
+        _playlist.Changed += () => { Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex); UpdateMprisState(); };
+        _playlist.CurrentChanged += _ => { Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex); UpdateMprisState(); };
         _playlist.LoopModeChanged += mode =>
         {
             PlayerControl.SetLoopModeLabel(mode);
@@ -81,7 +98,7 @@ public partial class MainWindow : Window
                 _ => "None"
             };
             Mpv.Shuffle = _playlist.Shuffle;
-            MprisService.Update();
+            UpdateMprisState();
         };
 
         // PlaylistView → acciones
@@ -96,9 +113,9 @@ public partial class MainWindow : Window
         // KeyBindings → acciones directas
         _keys.TogglePlayPause = () =>
         {
-            if (Mpv == null || !Mpv.IsInitialized) return;
-            if (Mpv.CurrentPath == null && _playlist.Current != null) LoadCurrentFromPlaylist();
-            else if (Mpv.EofReached) { Mpv.SeekAbsolute(0); Mpv.Play(); }
+            if (Mpv == null || !Mpv.IsInitialized || Mpv.CurrentPath == null) return;
+            //if (Mpv.CurrentPath == null && _playlist.Current != null) LoadCurrentFromPlaylist();
+            if (Mpv.EofReached) { Mpv.SeekAbsolute(0); Mpv.Play(); }
             else Mpv.PlayPause();
         };
         _keys.SeekRelative = sec => Mpv?.SeekRelative(sec);
@@ -128,6 +145,21 @@ public partial class MainWindow : Window
         PlayerControl.SetLoopModeLabel(_playlist.LoopMode);
     }
 
+    private void UpdateMprisState()
+    {
+        // Actualizar capabilities de MPRIS según el estado de la playlist.
+        bool hasNext = _playlist.Current != null && _playlist.PeekNext() is var nt && nt >= 0 && nt != _playlist.CurrentIndex;
+        bool hasPrev = _playlist.Current != null && _playlist.PeekPrev() is var pv && pv >= 0 && pv != _playlist.CurrentIndex;
+
+        MprisService.capabilities.CanGoNext = hasNext;
+        MprisService.capabilities.CanGoPrevious = hasPrev;
+        MprisService.capabilities.CanPlay = _playlist.Current != null;
+        MprisService.capabilities.CanPause = _playlist.Current != null;
+        MprisService.capabilities.CanSeek = _playlist.Current != null;
+        MprisService.capabilities.CanControl = _playlist.Current != null;
+        MprisService.Update();
+    }
+
     public async void OpenFile() => await OpenFilePickerAsync();
 
     private async Task OpenFilePickerAsync()
@@ -143,7 +175,7 @@ public partial class MainWindow : Window
                     Patterns = [ "*.mp4", "*.mkv", "*.webm", "*.avi", "*.mov",
                                        "*.flv", "*.wmv", "*.mpg", "*.mpeg", "*.m4v", "*.ts" ]
                 },
-                new FilePickerFileType("Todos") { Patterns = new[] { "*.*" } }
+                new FilePickerFileType("Todos") { Patterns = ["*.*"] }
             ]
         });
 

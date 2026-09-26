@@ -38,7 +38,7 @@ public class MpvPlayer : MprisSource, IDisposable
     public event Action<bool> IsPlayingChanged;
     public event Action<double> PositionChanged;
     public event Action<double> DurationChanged;
-    public event Action<double> VolumeChanged;
+    public event Action<double> OnVolumeChanged;
     public event Action<bool> MuteChanged;
     public event Action<string> PathChanged;
     public event Action FileLoaded;
@@ -50,6 +50,9 @@ public class MpvPlayer : MprisSource, IDisposable
     public event Action PrevRequested;
     public event Action QuitRequested;
     public event Action RaiseRequested;
+    public event Action<string> LoopChangedFromMpris;
+    public event Action<bool> ShuffleChangedFromMpris;
+    public event Action<double> VolumeChangedFromMpris;
 
     public void InitForRenderApi()
     {
@@ -205,12 +208,8 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     int val = Marshal.PtrToStructure<int>(prop.data);
                     IsPlaying = val == 0;
-                    base.IsPlaying = IsPlaying;
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        IsPlayingChanged?.Invoke(IsPlaying);
-                        MprisService.Update();
-                    });
+                    Dispatcher.UIThread.Invoke(() => { IsPlayingChanged?.Invoke(IsPlaying); });
+                    MprisService.Update();
                 }
                 break;
 
@@ -219,12 +218,8 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     double v = Marshal.PtrToStructure<double>(prop.data);
                     Volume = v / 100.0;
-                    base.Volume = Volume;
-                    Dispatcher.UIThread.Invoke(() =>
-                    {
-                        VolumeChanged?.Invoke(Volume);
-                        MprisService.Update();
-                    });
+                    Dispatcher.UIThread.Invoke(() => OnVolumeChanged?.Invoke(Volume));
+                    MprisService.Update();
                 }
                 break;
 
@@ -232,8 +227,7 @@ public class MpvPlayer : MprisSource, IDisposable
                 if (prop.format == LibMpv.MPV_FORMAT_DOUBLE)
                 {
                     Rate = Marshal.PtrToStructure<double>(prop.data);
-                    base.Rate = Rate;
-                    Dispatcher.UIThread.Invoke(MprisService.Update);
+                    MprisService.Update();
                 }
                 break;
 
@@ -254,7 +248,7 @@ public class MpvPlayer : MprisSource, IDisposable
             case "media-title":
                 MediaTitle = ReadPropString(prop);
                 Title = MediaTitle;
-                Dispatcher.UIThread.Invoke(MprisService.Update);
+                MprisService.Update();
                 break;
 
             case "track-list/count":
@@ -345,6 +339,10 @@ public class MpvPlayer : MprisSource, IDisposable
     public override void Prev() => Dispatcher.UIThread.Invoke(() => PrevRequested?.Invoke());
     public override void Quit() => Dispatcher.UIThread.Invoke(() => QuitRequested?.Invoke());
     public override void Raise() => Dispatcher.UIThread.Invoke(() => RaiseRequested?.Invoke());
+
+    public override void LoopChanged(string loop) => Dispatcher.UIThread.Invoke(() => LoopChangedFromMpris?.Invoke(loop));
+    public override void ShuffleChanged(bool shuffle) => Dispatcher.UIThread.Invoke(() => ShuffleChangedFromMpris?.Invoke(shuffle));
+    public override void VolumeChanged(double rate) => Dispatcher.UIThread.Invoke(() => VolumeChangedFromMpris?.Invoke(rate));
 
     // P/Invoke helpers
     private void SetOptionString(string name, string value)

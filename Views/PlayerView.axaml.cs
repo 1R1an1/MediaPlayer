@@ -46,11 +46,9 @@ public partial class PlayerView : UserControl
         // Botones llaman directo a MpvPlayer.
         PlayPauseBtn.Click += (_, _) =>
         {
-            if (Player != null)
-                if (Player.CurrentPath == null)
-                    NextRequested?.Invoke();
-                else if (Player.EofReached) { Player.SeekAbsolute(0); Player.Play(); }
-                else Player.PlayPause();
+            if (Player == null || Player.CurrentPath == null) return;
+            if (Player.EofReached) { Player.SeekAbsolute(0); Player.Play(); }
+            else Player.PlayPause();
             ShowControls();
         };
         PrevBtn.Click += (_, _) => PrevRequested?.Invoke();
@@ -125,7 +123,7 @@ public partial class PlayerView : UserControl
             Player.IsPlayingChanged += p => { PlayIcon.IsVisible = !p; PauseIcon.IsVisible = p; };
             Player.PositionChanged += OnPositionChanged;
             Player.DurationChanged += sec => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); };
-            Player.VolumeChanged += v => { if (!_seeking) VolumeSlider.Value = v; };
+            Player.OnVolumeChanged += v => { if (!_seeking) VolumeSlider.Value = v; };
             Player.MuteChanged += m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; };
             // Mostrar el video cuando mpv carga un archivo, ocultar cuando no hay.
             Player.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
@@ -136,7 +134,7 @@ public partial class PlayerView : UserControl
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine("InitMpv: " + ex);
+            Console.WriteLine("InitMpv: " + ex);
         }
     }
 
@@ -182,6 +180,7 @@ public partial class PlayerView : UserControl
         else
         {
             _canHide = true;
+            _hideTimer?.Stop();
             _hideTimer?.Start();
         }
     }
