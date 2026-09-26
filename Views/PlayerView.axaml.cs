@@ -131,6 +131,7 @@ public partial class PlayerView : UserControl
             Player.EndReached += () => NextRequested?.Invoke();
 
             VolumeSlider.Value = Player.Volume;
+            Player.Pause();
         }
         catch (Exception ex)
         {
@@ -204,9 +205,9 @@ public partial class PlayerView : UserControl
     {
         // e.Delta.Y > 0 = scroll arriba, < 0 = scroll abajo
         if (e.Delta.Y > 0)
-            Player?.SetVolume01(Math.Clamp(VolumeSlider.Value + 0.02, 0, 1));
+            Player?.SetVolume01(Math.Clamp(VolumeSlider.Value + 0.05, 0, 1));
         else if (e.Delta.Y < 0)
-            Player?.SetVolume01(Math.Clamp(VolumeSlider.Value - 0.02, 0, 1));
+            Player?.SetVolume01(Math.Clamp(VolumeSlider.Value - 0.05, 0, 1));
         e.Handled = true;
     }
 
