@@ -91,7 +91,7 @@ public partial class MainWindow : Window
 
     private async Task OpenFilePickerAsync()
     {
-        string[] filter = ["*.mp4", "*.mkv", "*.webm", "*.avi", "*.mov", "*.flv", "*.wmv", "*.mpg", "*.mpeg", "*.m4v", "*.ts"];
+        string[] filter = ["*.mp4", "*.mkv", "*.webm", "*.avi", "*.mov", "*.flv", "*.wmv", "*.mpg", "*.mpeg", "*.m4v", "*.ts", "*.mp3"];
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Abrir video",
@@ -151,7 +151,7 @@ public partial class MainWindow : Window
     private static bool IsMediaFile(string path)
     {
         string ext = Path.GetExtension(path).ToLowerInvariant();
-        string[] exts = { ".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts" };
+        string[] exts = { ".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3" };
         return Array.IndexOf(exts, ext) >= 0;
     }
 

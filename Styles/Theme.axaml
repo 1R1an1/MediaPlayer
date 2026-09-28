@@ -19,9 +19,6 @@
     <Color x:Key="TrackEmptyColor">#3fff</Color>
     <Color x:Key="TrackEmptyDisabledColor">#2fff</Color>
 
-    <!-- Separadores verticales entre islas -->
-    <!-- <Color x:Key="SeparatorColor">#333333</Color> -->
-
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush"      Color="{StaticResource BackgroundColor}" />
     <SolidColorBrush x:Key="ForegroundBrush"      Color="{StaticResource ForegroundColor}" />

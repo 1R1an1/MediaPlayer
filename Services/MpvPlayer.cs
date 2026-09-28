@@ -88,7 +88,7 @@ public class MpvPlayer : MprisSource, IDisposable
         SetOptionString("config", "no");
         SetOptionString("terminal", "no");
         SetOptionString("force-window", "no");
-        SetOptionString("audio-display", "no");
+        // SetOptionString("audio-display", "no");
         SetOptionString("keep-open", "yes");
         SetOptionString("idle", "yes");
         SetOptionString("ytdl", "no");
@@ -156,7 +156,6 @@ public class MpvPlayer : MprisSource, IDisposable
 
             case LibMpv.MPV_EVENT_FILE_LOADED:
                 LoadTrackList();
-                LoadCover();
                 DurationSec = GetDoubleProperty("duration");
                 PositionSec = GetDoubleProperty("time-pos");
                 Dispatcher.UIThread.Invoke(() =>
@@ -244,6 +243,7 @@ public class MpvPlayer : MprisSource, IDisposable
 
             case "path":
                 CurrentPath = ReadPropString(prop);
+                LoadCover();
                 Dispatcher.UIThread.Invoke(() => PathChanged?.Invoke(CurrentPath));
                 break;
 
@@ -309,7 +309,7 @@ public class MpvPlayer : MprisSource, IDisposable
 
     private void LoadCover()
     {
-        if (string.IsNullOrEmpty(CurrentPath) || !File.Exists(CurrentPath) || !CurrentPath.EndsWith(".mkv"))
+        if (string.IsNullOrEmpty(CurrentPath) || !File.Exists(CurrentPath))
         {
             CoverBytes = null;
             CoverHashHex = string.Empty;
@@ -321,22 +321,34 @@ public class MpvPlayer : MprisSource, IDisposable
             // ffmpeg -dump_attachment:t "" vuelca todos los attachments a la carpeta actual.
             // Usamos una carpeta temporal para no llenar el directorio del usuario.
             string tempDir = Directory.CreateTempSubdirectory("mpv_cover_").FullName;
+            string ext = Path.GetExtension(CurrentPath).ToLowerInvariant();
 
-            var extract = new Process
+            var psi = new ProcessStartInfo
             {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ffmpeg",
-                    Arguments = $"-dump_attachment:t \"\" -i \"{CurrentPath}\" -y -loglevel quiet",
-                    WorkingDirectory = tempDir,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                }
+                FileName = "ffmpeg",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = tempDir,
             };
+
+            string coverFile;
+            if (ext == ".mkv")
+            {
+                // MKV: cover embebido como attachment
+                psi.Arguments = $"-dump_attachment:t \"\" -i \"{CurrentPath}\" -y -loglevel quiet";
+                coverFile = Path.Combine(tempDir, "cover.webp");
+            }
+            else
+            {
+                // MP3/FLAC/OGG/M4A: cover embebido como stream de video
+                psi.Arguments = $"-i \"{CurrentPath}\" -map 0:v:0 -c:v copy -y -loglevel quiet cover.jpg";
+                coverFile = Path.Combine(tempDir, "cover.jpg");
+            }
+
+            var extract = new Process { StartInfo = psi };
             extract.Start();
             extract.WaitForExit(5000);
 
-            string coverFile = Path.Combine(tempDir, "cover.webp");
             if (File.Exists(coverFile))
             {
                 byte[] bytes = File.ReadAllBytes(coverFile);
