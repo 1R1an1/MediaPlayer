@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:v="clr-namespace:MediaPlayer.Views"
+             xmlns:v="using:MediaPlayer.Views"
              x:Class="MediaPlayer.Views.PlayerView">
 
     <Grid x:Name="RootGrid" Margin="2,0,0,0" Background="{StaticResource BackgroundBrush}">
@@ -104,13 +104,13 @@
                         <Button Classes="icon" CornerRadius="15" x:Name="MuteBtn" ToolTip.Tip="Mute (M)">
                             <Grid HorizontalAlignment="Center">
                                 <Svg x:Name="VolIcon" Path="Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <Svg x:Name="MuteIcon" Path="Svgs/VolumeMute.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
+                                <Svg x:Name="MuteIcon" Path="Svgs/VolumeMute.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
 
                         <Button Classes="icon" x:Name="LoopBtn" CornerRadius="15" ToolTip.Tip="Loop (L)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="LoopIcon" Path="Svgs/Loop.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <Svg x:Name="LoopIcon" Path="Svgs/Loop.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>
                                 <Svg x:Name="LoopOneIcon" Path="Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>

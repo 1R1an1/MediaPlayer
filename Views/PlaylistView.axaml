@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:m="clr-namespace:MediaPlayer.Models"
+             xmlns:m="using:MediaPlayer.Models"
+             xmlns:l="using:MediaPlayer"
              x:Class="MediaPlayer.Views.PlaylistView"
              Background="{StaticResource BackgroundBrush}">
 
@@ -31,10 +32,8 @@
         </Border>
 
         <!-- Lista con ItemTemplate -->
-        <ListBox Grid.Row="1"
-                 x:Name="List"
-                 SelectionMode="Single"
-                 Padding="10">
+        <ListBox Grid.Row="1" x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
+                 Padding="10" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
 
             <ListBox.Styles>
                 <Style Selector="ListBoxItem">
@@ -45,23 +44,26 @@
                         </ControlTemplate>
                     </Setter>
                 </Style>
+                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
             </ListBox.Styles>
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="m:PlaylistItem">
-                    <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
-                        <!-- <Border Width="3" Background="{StaticResource AccentBrush}" CornerRadius="2" VerticalAlignment="Stretch" IsVisible="{Binding IsCurrent}" /> -->
+                    <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
+                        <StackPanel Orientation="Horizontal"  Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
+                            <!-- Cover -->
+                            <Border Width="71" Height="40" ClipToBounds="True" CornerRadius="5">
+                                <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
+                            </Border>
 
-                        <!-- Cover -->
-                        <Border Width="71" Height="40" ClipToBounds="True" CornerRadius="5">
-                            <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
-                        </Border>
-
-                        <!-- Textos -->
-                        <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                            <!-- Textos -->
+                            <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

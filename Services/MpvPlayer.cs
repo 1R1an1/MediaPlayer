@@ -27,8 +27,8 @@ public class MpvPlayer : MprisSource, IDisposable
 
     // Estado público (accedido desde el thread de eventos y desde UI).
     public bool EofReached;
-    public double PositionSec;
-    public double DurationSec;
+    public double PositionSec { get => PositionUs / 1_000_000.0; set => PositionUs = (long)(value * 1_000_000); }
+    public double DurationSec { get => DurationUs / 1_000_000.0; set => DurationUs = (long)(value * 1_000_000); }
     public bool IsMuted;
     public string CurrentPath;
     public List<AudioTrack> AudioTracks = new List<AudioTrack>();
@@ -48,13 +48,13 @@ public class MpvPlayer : MprisSource, IDisposable
     public event Action<string> ErrorOccurred;
 
     // MPRIS nos avisa via estos cuando el escritorio manda Next/Prev/Quit/Raise
-    public event Action NextRequested;
-    public event Action PrevRequested;
-    public event Action QuitRequested;
-    public event Action RaiseRequested;
-    public event Action<string> LoopChangedFromMpris;
-    public event Action<bool> ShuffleChangedFromMpris;
-    public event Action<double> VolumeChangedFromMpris;
+    public event Action MPRISNextRequested;
+    public event Action MPRISPrevRequested;
+    public event Action MPRISQuitRequested;
+    public event Action MPRISRaiseRequested;
+    public event Action<string> MPRISLoopChanged;
+    public event Action<bool> MPRISShuffleChanged;
+    public event Action<double> MPRISVolumeChanged;
 
     public void InitForRenderApi()
     {
@@ -193,7 +193,6 @@ public class MpvPlayer : MprisSource, IDisposable
                 if (prop.format == LibMpv.MPV_FORMAT_DOUBLE)
                 {
                     PositionSec = Marshal.PtrToStructure<double>(prop.data);
-                    PositionUs = (long)(PositionSec * 1_000_000);
                     Dispatcher.UIThread.Invoke(() => PositionChanged?.Invoke(PositionSec));
                 }
                 break;
@@ -202,7 +201,6 @@ public class MpvPlayer : MprisSource, IDisposable
                 if (prop.format == LibMpv.MPV_FORMAT_DOUBLE)
                 {
                     DurationSec = Marshal.PtrToStructure<double>(prop.data);
-                    DurationUs = (long)(DurationSec * 1_000_000);
                     Dispatcher.UIThread.Invoke(() => DurationChanged?.Invoke(DurationSec));
                 }
                 break;
@@ -278,7 +276,7 @@ public class MpvPlayer : MprisSource, IDisposable
                     if (eof != 0 && !_eofFired)
                     {
                         _eofFired = true;
-                        Dispatcher.UIThread.Invoke(() => EndReached?.Invoke());
+                        EndReached?.Invoke();
                     }
                     else if (eof == 0) _eofFired = false;
                 }
@@ -322,8 +320,7 @@ public class MpvPlayer : MprisSource, IDisposable
         {
             // ffmpeg -dump_attachment:t "" vuelca todos los attachments a la carpeta actual.
             // Usamos una carpeta temporal para no llenar el directorio del usuario.
-            string tempDir = Path.Combine(Path.GetTempPath(), $"mpv_cover_{Guid.NewGuid()}");
-            Directory.CreateDirectory(tempDir);
+            string tempDir = Directory.CreateTempSubdirectory("mpv_cover_").FullName;
 
             var extract = new Process
             {
@@ -339,10 +336,7 @@ public class MpvPlayer : MprisSource, IDisposable
             extract.Start();
             extract.WaitForExit(5000);
 
-            // Buscar cualquier archivo de imagen en la carpeta temporal.
-            string[] imageExts = { ".webp", ".jpg", ".jpeg", ".png", ".bmp" };
             string coverFile = Path.Combine(tempDir, "cover.webp");
-
             if (File.Exists(coverFile))
             {
                 byte[] bytes = File.ReadAllBytes(coverFile);
@@ -399,7 +393,7 @@ public class MpvPlayer : MprisSource, IDisposable
     }
 
     // Control API
-    public void LoadFile(string path) { if (IsInitialized) Command("loadfile", path, "replace"); }
+    public void LoadFile(string path) { if (IsInitialized && path != CurrentPath) Command("loadfile", path, "replace"); }
     public void PlayPause() => Command("cycle", "pause");
     public void Play() => SetPropertyString("pause", "no");
     public void Pause() => SetPropertyString("pause", "yes");
@@ -414,20 +408,20 @@ public class MpvPlayer : MprisSource, IDisposable
         => Command("seek", delta.ToString("F3", CultureInfo.InvariantCulture), "relative");
 
     // MprisSource overrides
-    public override void TogglePlayPause() => PlayPause();
-    public override void Stop() => Command("stop");
-    public override void Seek(long offsetUs) => SeekRelative(offsetUs / 1_000_000.0);
-    public override void SetPosition(long positionUs) => SeekAbsolute(positionUs / 1_000_000.0);
-    public override void OpenUri(string uri) => LoadFile(uri);
+    protected override void TogglePlayPause() => PlayPause();
+    protected override void Stop() => Command("stop");
+    protected override void Seek(long offsetUs) => SeekRelative(offsetUs / 1_000_000.0);
+    protected override void SetPosition(long positionUs) => SeekAbsolute(positionUs / 1_000_000.0);
+    protected override void OpenUri(string uri) => LoadFile(uri);
 
-    public override void Next() => Dispatcher.UIThread.Invoke(() => NextRequested?.Invoke());
-    public override void Prev() => Dispatcher.UIThread.Invoke(() => PrevRequested?.Invoke());
-    public override void Quit() => Dispatcher.UIThread.Invoke(() => QuitRequested?.Invoke());
-    public override void Raise() => Dispatcher.UIThread.Invoke(() => RaiseRequested?.Invoke());
+    protected override void Next() => MPRISNextRequested?.Invoke();
+    protected override void Prev() => MPRISPrevRequested?.Invoke();
+    protected override void Quit() => MPRISQuitRequested?.Invoke();
+    protected override void Raise() => MPRISRaiseRequested?.Invoke();
 
-    public override void LoopChanged(string loop) => Dispatcher.UIThread.Invoke(() => LoopChangedFromMpris?.Invoke(loop));
-    public override void ShuffleChanged(bool shuffle) => Dispatcher.UIThread.Invoke(() => ShuffleChangedFromMpris?.Invoke(shuffle));
-    public override void VolumeChanged(double rate) => Dispatcher.UIThread.Invoke(() => VolumeChangedFromMpris?.Invoke(rate));
+    protected override void LoopChanged(string loop) => MPRISLoopChanged?.Invoke(loop);
+    protected override void ShuffleChanged(bool shuffle) => MPRISShuffleChanged?.Invoke(shuffle);
+    protected override void VolumeChanged(double rate) => MPRISVolumeChanged?.Invoke(rate);
 
     // P/Invoke helpers
     private void SetOptionString(string name, string value)

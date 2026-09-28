@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
 using MediaPlayer.Models;
 
 namespace MediaPlayer.Services;
@@ -10,22 +12,48 @@ namespace MediaPlayer.Services;
 /// <summary>Cola de reproducción. Maneja índice actual, Next/Prev según LoopMode y shuffle.</summary>
 public class PlaylistService
 {
+    private MpvPlayer _mpv => App.Mpv;
+
     private readonly List<PlaylistItem> _originalItems = new();
-    private readonly List<PlaylistItem> _items = new();
+    private readonly ObservableCollection<PlaylistItem> _items = new();
     private int _currentIndex = -1;
     private LoopMode _loopMode = LoopMode.None;
     private bool _shuffle;
     private readonly Random _rng = new();
 
-    public IReadOnlyList<PlaylistItem> Items => _items;
-    public int Count => _items.Count;
-    public int CurrentIndex => _currentIndex;
-    public PlaylistItem Current => (_currentIndex >= 0 && _currentIndex < _items.Count) ? _items[_currentIndex] : null;
+    public event Action<LoopMode> LoopModeChanged;
+    public event Action<int> CurrentChanged;
+
+    public ReadOnlyObservableCollection<PlaylistItem> Items => new ReadOnlyObservableCollection<PlaylistItem>(_items);
+    public int CurrentIndex
+    {
+        get => _currentIndex;
+        private set
+        {
+            if (_currentIndex == value) return;
+            int prev = _currentIndex;
+            _currentIndex = value;
+
+            if (prev >= 0 && prev < _items.Count)
+                _items[prev].IsCurrent = false;
+            if (_currentIndex >= 0 && _currentIndex < _items.Count)
+                _items[_currentIndex].IsCurrent = true;
+
+            CurrentChanged?.Invoke(_currentIndex);
+        }
+    }
+
+    public PlaylistItem Current => (CurrentIndex >= 0 && CurrentIndex < _items.Count) ? _items[CurrentIndex] : null;
 
     public LoopMode LoopMode
     {
         get => _loopMode;
-        set { if (_loopMode != value) _loopMode = value; }
+        set
+        {
+            if (_loopMode == value) return;
+            _loopMode = value;
+            LoopModeChanged?.Invoke(_loopMode);
+        }
     }
 
     public bool Shuffle
@@ -39,75 +67,84 @@ public class PlaylistService
         }
     }
 
-    public event Action Changed;
-    public event Action<int> CurrentChanged;
-
-    public void Add(string path, string title = null)
+    public PlaylistService()
     {
-        var item = new PlaylistItem(path, title);
-        _originalItems.Add(item);
-        _items.Add(item);
-        if (_currentIndex < 0) { _currentIndex = 0; CurrentChanged?.Invoke(_currentIndex); }
-        if (_shuffle) ApplyShuffle();
-        MarkCurrent();
-        Changed?.Invoke();
+        _mpv.MPRISLoopChanged += SetLoopMode;
+        _mpv.MPRISShuffleChanged += s => Shuffle = s;
+        _mpv.EndReached += () =>
+        {
+            if (LoopMode == LoopMode.Track)
+            {
+                _mpv.SeekAbsolute(0);
+                _mpv.Play();
+            }
+            else Advance();
+        };
     }
 
-    public void AddRange(IEnumerable<string> paths)
+    public async Task Add(params IEnumerable<string> paths)
     {
         bool firstLoad = _items.Count == 0;
+        var old = _originalItems.Count;
         foreach (var p in paths)
         {
             var item = new PlaylistItem(p);
             _originalItems.Add(item);
             _items.Add(item);
         }
-        if (firstLoad && _items.Count > 0) { _currentIndex = 0; CurrentChanged?.Invoke(_currentIndex); }
-        if (_shuffle) ApplyShuffle();
-        MarkCurrent();
-        Changed?.Invoke();
+        if (firstLoad && _items.Count > 0) { CurrentIndex = 0; SetCurrent(CurrentIndex); }
+        if (_shuffle)
+            ApplyShuffle();
+
+        await Probe(old, -1);
+    }
+
+
+    public async Task AddNew(IEnumerable<string> paths)
+    {
+        Clear();
+        await Add(paths);
+        SetCurrent(CurrentIndex);
     }
 
     public void RemoveAt(int index)
     {
         if (index < 0 || index >= _items.Count) return;
-        var item = _items[index];
+        _originalItems.Remove(_items[index]);
         _items.RemoveAt(index);
-        _originalItems.Remove(item);
 
-        if (_currentIndex > index) _currentIndex--;
-        else if (_currentIndex == index)
+        if (CurrentIndex > index) CurrentIndex--;
+        else if (CurrentIndex == index)
         {
-            if (_currentIndex >= _items.Count) _currentIndex = _items.Count - 1;
-            CurrentChanged?.Invoke(_currentIndex);
+            if (CurrentIndex >= _items.Count)
+                CurrentIndex = _items.Count - 1;
+
+            SetCurrent(CurrentIndex);
         }
-        MarkCurrent();
-        Changed?.Invoke();
     }
 
     public void Clear()
     {
         _items.Clear();
         _originalItems.Clear();
-        _currentIndex = -1;
-        CurrentChanged?.Invoke(_currentIndex);
-        Changed?.Invoke();
+        CurrentIndex = -1;
+        lastLoaded = -1;
     }
 
+    private int lastLoaded = -1;
     public void SetCurrent(int index)
     {
-        if (index < 0 || index >= _items.Count || _currentIndex == index) return;
-        _currentIndex = index;
-        MarkCurrent();
-        CurrentChanged?.Invoke(_currentIndex);
+        if (index < 0 || index >= _items.Count || lastLoaded == index) return;
+        CurrentIndex = index;
+        lastLoaded = index;
+        _mpv.LoadFile(Current.Path);
     }
 
     public int PeekNext()
     {
         if (_items.Count == 0) return -1;
-        if (_loopMode == LoopMode.Track && _currentIndex >= 0) return _currentIndex;
-
-        int next = _currentIndex + 1;
+        if (_loopMode == LoopMode.Track && CurrentIndex >= 0) return CurrentIndex;
+        int next = CurrentIndex + 1;
         if (next < _items.Count) return next;
         return _loopMode == LoopMode.Playlist ? 0 : -1;
     }
@@ -115,27 +152,25 @@ public class PlaylistService
     public int PeekPrev()
     {
         if (_items.Count == 0) return -1;
-        if (_loopMode == LoopMode.Track && _currentIndex >= 0) return _currentIndex;
+        if (_loopMode == LoopMode.Track && CurrentIndex >= 0) return CurrentIndex;
 
-        int prev = _currentIndex - 1;
+        int prev = CurrentIndex - 1;
         if (prev >= 0) return prev;
         return _loopMode == LoopMode.Playlist ? _items.Count - 1 : -1;
     }
 
-    public int Advance()
+    public void Advance()
     {
         int next = PeekNext();
-        if (next < 0) return -1;
+        if (next < 0) return;
         SetCurrent(next);
-        return next;
     }
 
-    public int GoPrev()
+    public void GoPrev()
     {
         int prev = PeekPrev();
-        if (prev < 0) return -1;
+        if (prev < 0) return;
         SetCurrent(prev);
-        return prev;
     }
 
     /// <summary>
@@ -148,54 +183,44 @@ public class PlaylistService
 
         if (_shuffle)
         {
-            // Copiar originales y mezclar (Fisher-Yates)
-            _items.Clear();
-            _items.AddRange(_originalItems);
             for (int i = _items.Count - 1; i > 0; i--)
             {
                 int j = _rng.Next(i + 1);
-                (_items[i], _items[j]) = (_items[j], _items[i]);
-            }
-
-            // Mover el current al principio para que no se repita inmediatamente.
-            if (current != null)
-            {
-                _items.Remove(current);
-                _items.Insert(0, current);
-                _currentIndex = 0;
+                if (i != j) _items.Move(i, j);
             }
         }
         else
         {
-            // Restaurar orden original
-            _items.Clear();
-            _items.AddRange(_originalItems);
+            for (int i = 0; i < _originalItems.Count; i++)
+            {
+                var item = _originalItems[i];
+                int currentPos = _items.IndexOf(item);
+                if (currentPos != i) _items.Move(currentPos, i);
+            }
         }
 
         // Actualizar el índice del current en la lista nueva
         if (current != null)
         {
-            int newIdx = _items.IndexOf(current);
-            if (newIdx >= 0) _currentIndex = newIdx;
+            int index = _items.IndexOf(current);
+            if (_shuffle)
+            {
+                if (index != 0) _items.Move(index, 0);
+                CurrentIndex = 0;
+            }
+            else
+                CurrentIndex = index;
         }
-
-        MarkCurrent();
-        Changed?.Invoke();
-    }
-
-    private void MarkCurrent()
-    {
-        for (int i = 0; i < _items.Count; i++) _items[i].IsCurrent = (i == _currentIndex);
     }
 
     /// <summary>
     /// Extrae duración y cover de cada archivo en un thread aparte.
     /// Dispara Changed después de cada item para que la UI se actualice.
     /// </summary>
-    public void ProbeAll()
+    public async Task Probe(int start = 0, int end = -1)
     {
-        var items = new List<PlaylistItem>(_originalItems);
-        foreach (var item in items)
+        var items = _originalItems[start..(end == -1 ? _originalItems.Count : end)];
+        await Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount / 2 }, async (item, _) =>
         {
             try
             {
@@ -212,15 +237,14 @@ public class PlaylistService
                     }
                 };
                 probe.Start();
-                string durStr = probe.StandardOutput.ReadToEnd().Trim();
-                probe.WaitForExit(5000);
+                string durStr = (await probe.StandardOutput.ReadToEndAsync()).Trim();
+                await probe.WaitForExitAsync();
 
                 if (double.TryParse(durStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double dur))
                     item.Duration = TimeSpan.FromSeconds(dur);
 
                 // Cover con ffmpeg
-                string tempDir = Path.Combine(Path.GetTempPath(), $"mpv_pl_{Guid.NewGuid()}");
-                Directory.CreateDirectory(tempDir);
+                string tempDir = Directory.CreateTempSubdirectory("mpv_pl_").FullName;
 
                 var extract = new Process
                 {
@@ -234,15 +258,44 @@ public class PlaylistService
                     }
                 };
                 extract.Start();
-                extract.WaitForExit(5000);
+                await extract.WaitForExitAsync();
 
                 string coverFile = Path.Combine(tempDir, "cover.webp");
                 if (File.Exists(coverFile))
-                    item.CoverBytes = File.ReadAllBytes(coverFile);
+                    item.CoverBytes = await File.ReadAllBytesAsync(coverFile);
 
                 try { Directory.Delete(tempDir, true); } catch { }
             }
             catch { }
-        }
+        });
     }
+
+
+    public void CycleLoopMode() => SetLoopMode(_loopMode switch
+    {
+        LoopMode.None => LoopMode.Track,
+        LoopMode.Track => LoopMode.Playlist,
+        LoopMode.Playlist => LoopMode.None,
+        _ => throw new InvalidCastException()
+    });
+
+    public void SetLoopMode(LoopMode mode)
+    {
+        _mpv.LoopStatus = mode switch
+        {
+            LoopMode.None => "None",
+            LoopMode.Track => "Track",
+            LoopMode.Playlist => "Playlist",
+            _ => throw new InvalidCastException()
+        };
+        LoopMode = mode;
+    }
+
+    public void SetLoopMode(string mode) => SetLoopMode(mode switch
+    {
+        "Track" => LoopMode.Track,
+        "Playlist" => LoopMode.Playlist,
+        "None" => LoopMode.None,
+        _ => throw new InvalidCastException()
+    });
 }

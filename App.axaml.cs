@@ -1,15 +1,16 @@
-using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using MediaPlayer.Services;
 using SharpUtils.Linux;
 
 namespace MediaPlayer;
 
 public partial class App : Application
 {
+    public static MpvPlayer Mpv { get; private set; }
+    public static PlaylistService Playlist { get; private set; }
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -19,44 +20,38 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            File.Delete("/tmp/mediaplayer.log");
+            Mpv = new MpvPlayer();
+            Playlist = new PlaylistService();
+            Mpv.InitForRenderApi();
+            _ = StartMprisAsync(Mpv);
+
             var main = new MainWindow();
             desktop.MainWindow = main;
-
-            // Lanzar MPRIS cuando la ventana esté abierta (mpv ya inicializó).
-            ThreadPool.QueueUserWorkItem(_ => _ = StartMprisAsync(main));
         }
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static async Task StartMprisAsync(MainWindow main)
+    private static async Task StartMprisAsync(MpvPlayer mpv)
     {
-        // Esperar a que PlayerView haya inicializado mpv
-        while (main.Mpv == null)
-            await Task.Delay(100);
-
-        await MprisService.StartAsync(
-            main.Mpv,
-            new MprisCapabilities
-            {
-                CanQuit = true,
-                CanRaise = true,
-                CanPlay = false,
-                CanPause = false,
-                CanSeek = false,
-                CanGoNext = false,
-                CanGoPrevious = false,
-                CanStop = true,
-                SupportsLoop = true,
-                SupportsShuffle = true,
-                SupportsVolume = true,
-                SupportedUriSchemes = ["file", "http", "https"],
-                SupportedMimeTypes = ["video/mp4", "video/x-matroska", "video/webm"]
-            },
-            new MprisOptions
-            {
-                Name = "mediaplayer",
-                DisplayName = "Media Player"
-            });
+        await MprisService.StartAsync(mpv, new MprisCapabilities
+        {
+            CanQuit = true,
+            CanRaise = true,
+            CanPlay = false,
+            CanPause = false,
+            CanSeek = false,
+            CanGoNext = false,
+            CanGoPrevious = false,
+            CanStop = true,
+            SupportsLoop = true,
+            SupportsShuffle = true,
+            SupportsVolume = true,
+            SupportedUriSchemes = ["file", "http", "https"],
+            SupportedMimeTypes = ["video/mp4", "video/x-matroska", "video/webm"]
+        }, new MprisOptions
+        {
+            Name = "mediaplayer",
+            DisplayName = "Media Player"
+        });
     }
 }

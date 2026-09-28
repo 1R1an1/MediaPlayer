@@ -1,6 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="MediaPlayer.App"
+             xmlns:conv="using:MediaPlayer.Views"
              RequestedThemeVariant="Dark">
 
     <Application.Resources>
@@ -8,6 +9,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="/Styles/Theme.axaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <conv:IsCurrentConverter x:Key="IsCurrentConverter"/>
         </ResourceDictionary>
     </Application.Resources>
     <Application.Styles>

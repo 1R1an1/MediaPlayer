@@ -3,11 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using MediaPlayer.Models;
 using MediaPlayer.Services;
 using SharpUtils.Linux;
 
@@ -19,113 +17,67 @@ namespace MediaPlayer;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly PlaylistService _playlist = new PlaylistService();
-    private readonly KeyBindings _keys = new KeyBindings();
+    private PlaylistService _playlist => App.Playlist;
+    private MpvPlayer _mpv => App.Mpv;
 
-    public MpvPlayer Mpv => PlayerControl?.Player;
+    private readonly KeyBindings _keys = new KeyBindings();
 
     public MainWindow()
     {
         InitializeComponent();
-        // Tunnel + handledEventsToo para capturar teclas aunque un control hijo las maneje.
-        AddHandler(KeyDownEvent, OnKeyDownTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
-    }
 
-    protected override void OnOpened(EventArgs e)
-    {
-        base.OnOpened(e);
-        WirePlayerControl();
-        WireDragDrop();
-        WireMpvWhenReady();
-    }
+        // --- MPVPLAYER-MPRIS EVENTS --- //
+        _mpv.MPRISNextRequested += PlayerView.Next;
+        _mpv.MPRISPrevRequested += PlayerView.Preview;
+        _mpv.MPRISQuitRequested += Close;
+        _mpv.MPRISRaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
+        _mpv.MPRISVolumeChanged += _mpv.SetVolume01;
 
-    // PlayerView → acciones que necesitan MainWindow (playlist + fullscreen)
-    private void WirePlayerControl()
-    {
-        PlayerControl.NextRequested += OnNext;
-        PlayerControl.PrevRequested += OnPrev;
-        PlayerControl.LoopClicked += CycleLoopMode;
-        PlayerControl.ToggleFullScreen += ToggleFullscreen;
-    }
+        // --- PLAYLIST EVENTS --- //
+        _playlist.LoopModeChanged += _ => UpdateMprisState();
+        _playlist.CurrentChanged += _ => UpdateMprisState();
+        PlaylistView.CloseRequested += async () => await HidePlaylist();
+        PlayerView.ToggleFullScreen += ToggleFullscreen;
 
-    private void WireDragDrop()
-    {
-        DragDrop.SetAllowDrop(this, true);
-        AddHandler(DragDrop.DragOverEvent, OnDragOver);
-        AddHandler(DragDrop.DropEvent, OnDrop);
-    }
-
-    private async void WireMpvWhenReady()
-    {
-        while (Mpv == null) await Task.Delay(100);
-
-        // MPRIS nos puede mandar acciones desde el escritorio.
-        Mpv.EndReached += OnEndReached;
-        Mpv.NextRequested += OnNext;
-        Mpv.PrevRequested += OnPrev;
-        Mpv.QuitRequested += Close;
-        Mpv.RaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
-
-
-        // MPRIS: cambios de props desde el escritorio → sincronizar hacia la app.
-        Mpv.LoopChangedFromMpris += SetLoopMode;
-        Mpv.VolumeChangedFromMpris += Mpv.SetVolume01;
-        Mpv.ShuffleChangedFromMpris += s => _playlist.Shuffle = s;
-
-        // Cuando mpv carga/descarga un archivo, actualizar capabilities.
-        Mpv.PathChanged += _ => UpdateMprisState();
-
-        // Playlist → UI + MPRIS capabilities
-        _playlist.Changed += () => { Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex); UpdateMprisState(); };
-        _playlist.CurrentChanged += _ => { Playlist.SetItems(_playlist.Items, _playlist.CurrentIndex); UpdateMprisState(); };
-
-        // PlaylistView → acciones
-        Playlist.ItemDoubleClicked += idx =>
-        {
-            _playlist.SetCurrent(idx);
-            LoadCurrentFromPlaylist();
-        };
-        Playlist.CloseRequested += async () => await HidePlaylist();
-        Playlist.ClearRequested += _playlist.Clear;
-
-        // KeyBindings → acciones directas
-        _keys.TogglePlayPause = () =>
-        {
-            if (Mpv == null || !Mpv.IsInitialized || Mpv.CurrentPath == null) return;
-            //if (Mpv.CurrentPath == null && _playlist.Current != null) LoadCurrentFromPlaylist();
-            if (Mpv.EofReached) { Mpv.SeekAbsolute(0); Mpv.Play(); }
-            else Mpv.PlayPause();
-        };
-        _keys.SeekRelative = sec => Mpv?.SeekRelative(sec);
-        _keys.VolumeDelta = delta => Mpv?.SetVolume01(Math.Clamp(Mpv.Volume + delta, 0, 1));
-        _keys.ToggleMute = () => Mpv?.SetMute(!Mpv.IsMuted);
-        _keys.Next = OnNext;
-        _keys.Prev = OnPrev;
-        _keys.CycleLoopMode = CycleLoopMode;
+        // --- KEYBINDINGS --- //
+        _keys.TogglePlayPause = PlayerView.PlayPause;
+        _keys.SeekRelative = sec => _mpv?.SeekRelative(sec);
+        _keys.VolumeDelta = delta => _mpv?.SetVolume01(Math.Clamp(_mpv.Volume + delta, 0, 1));
+        _keys.ToggleMute = () => _mpv?.SetMute(!_mpv.IsMuted);
+        _keys.Next = PlayerView.Next;
+        _keys.Prev = PlayerView.Preview;
+        _keys.CycleLoopMode = _playlist.CycleLoopMode;
         _keys.ToggleFullscreen = ToggleFullscreen;
         _keys.ExitFullscreen = () => { if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal; };
         _keys.NextAudioTrack = () =>
         {
-            if (Mpv == null || Mpv.AudioTracks.Count == 0) return;
-            var list = Mpv.AudioTracks;
+            if (_mpv.AudioTracks.Count == 0) return;
+            var list = _mpv.AudioTracks;
             int idx = list.ToList().FindIndex(t => t.IsSelected);
-            Mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
+            _mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
         };
         _keys.TogglePlaylist = async () =>
         {
             if (PlaylistGrid.IsVisible)
                 await HidePlaylist();
             else
-                await ShowPlaylist();
+                ShowPlaylist();
         };
         _keys.Quit = Close;
 
-        PlayerControl.SetLoopModeLabel(_playlist.LoopMode);
+
+        // --- DRAG AND DROP --- //
+        DragDrop.SetAllowDrop(this, true);
+
+        // --- TUNNEL BINDINGS --- //
+        AddHandler(KeyDownEvent, OnKeyDownTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
     private void UpdateMprisState()
     {
-        // Actualizar capabilities de MPRIS según el estado de la playlist.
+        // Actualizar capabilities de MPRIS según el estado de la Playlist.
         bool hasNext = _playlist.Current != null && _playlist.PeekNext() is var nt && nt >= 0 && nt != _playlist.CurrentIndex;
         bool hasPrev = _playlist.Current != null && _playlist.PeekPrev() is var pv && pv >= 0 && pv != _playlist.CurrentIndex;
 
@@ -137,107 +89,38 @@ public partial class MainWindow : Window
         MprisService.Update();
     }
 
-    public async void OpenFile() => await OpenFilePickerAsync();
-
     private async Task OpenFilePickerAsync()
     {
+        string[] filter = ["*.mp4", "*.mkv", "*.webm", "*.avi", "*.mov", "*.flv", "*.wmv", "*.mpg", "*.mpeg", "*.m4v", "*.ts"];
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Abrir video",
             AllowMultiple = true,
             FileTypeFilter =
             [
-                new FilePickerFileType("Videos")
-                {
-                    Patterns = [ "*.mp4", "*.mkv", "*.webm", "*.avi", "*.mov",
-                                       "*.flv", "*.wmv", "*.mpg", "*.mpeg", "*.m4v", "*.ts" ]
-                },
+                new FilePickerFileType("Videos"){ Patterns = filter },
                 new FilePickerFileType("Todos") { Patterns = ["*.*"] }
             ]
         });
 
         if (files == null || files.Count == 0) return;
+        var filePath = files.Select(f => f.Path.LocalPath).Where(IsMediaFile);
+        if (files == null || filePath.Count() == 0) return;
 
-        _playlist.Clear();
-        _playlist.AddRange(files.Select(f => f.Path.LocalPath));
-        _playlist.ProbeAll();
-        LoadCurrentFromPlaylist();
-    }
-
-    private void OnNext()
-    {
-        int idx = _playlist.Advance();
-        if (idx >= 0) LoadCurrentFromPlaylist();
-    }
-
-    private void OnPrev()
-    {
-        // Si pasamos más de 5s, volver al principio del actual.
-        if (Mpv != null && Mpv.PositionSec > 5) { Mpv.SeekAbsolute(0); return; }
-        int idx = _playlist.GoPrev();
-        if (idx >= 0) LoadCurrentFromPlaylist();
-    }
-
-    private void OnEndReached()
-    {
-        // Loop track: seek al principio + play (sin recargar el archivo).
-        if (_playlist.LoopMode == LoopMode.Track)
-        {
-            Mpv?.SeekAbsolute(0);
-            Mpv?.Play();
-            return;
-        }
-        OnNext();
-    }
-
-    public void CycleLoopMode() => SetLoopMode(_playlist.LoopMode switch
-    {
-        LoopMode.None => LoopMode.Track,
-        LoopMode.Track => LoopMode.Playlist,
-        _ => LoopMode.None
-    });
-
-    private void SetLoopMode(LoopMode mode)
-    {
-        _playlist.LoopMode = mode;
-        PlayerControl.SetLoopModeLabel(mode);
-        if (Mpv == null) return;
-        Mpv.LoopStatus = mode switch
-        {
-            LoopMode.None => "None",
-            LoopMode.Track => "Track",
-            LoopMode.Playlist => "Playlist",
-            _ => "None"
-        };
-        Mpv.Shuffle = _playlist.Shuffle;
-        UpdateMprisState();
-    }
-
-    private void SetLoopMode(string mode) => SetLoopMode(mode switch
-    {
-        "Track" => LoopMode.Track,
-        "Playlist" => LoopMode.Playlist,
-        _ => LoopMode.None
-    });
-
-    private void LoadCurrentFromPlaylist()
-    {
-        var current = _playlist.Current;
-        if (current == null || Mpv == null || !Mpv.IsInitialized) return;
-        Mpv.LoadFile(current.Path);
+        await _playlist.AddNew(filePath);
     }
 
     private void ToggleFullscreen()
     {
         WindowState = (WindowState == WindowState.FullScreen) ? WindowState.Normal : WindowState.FullScreen;
-        PlayerControl.UpdateFullScreenIcons(WindowState == WindowState.FullScreen);
+        PlayerView.UpdateFullScreenIcons(WindowState == WindowState.FullScreen);
     }
 
-    private void OnKeyDownTunnel(object sender, KeyEventArgs e)
+    private async Task OnKeyDownTunnel(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.O && e.KeyModifiers == KeyModifiers.Control)
         {
-            OpenFile();
+            await OpenFilePickerAsync();
             e.Handled = true;
             return;
         }
@@ -251,7 +134,7 @@ public partial class MainWindow : Window
         e.DragEffects = (files != null && files.Length > 0) ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
-    private void OnDrop(object sender, DragEventArgs e)
+    private async Task OnDrop(object sender, DragEventArgs e)
     {
         var files = e.DataTransfer?.TryGetFiles();
         if (files == null || files.Length == 0) return;
@@ -262,9 +145,7 @@ public partial class MainWindow : Window
             .ToList();
         if (paths.Count == 0) return;
 
-        bool wasEmpty = _playlist.Count == 0;
-        _playlist.AddRange(paths);
-        if (wasEmpty) LoadCurrentFromPlaylist();
+        await _playlist.Add(paths);
     }
 
     private static bool IsMediaFile(string path)
@@ -274,7 +155,7 @@ public partial class MainWindow : Window
         return Array.IndexOf(exts, ext) >= 0;
     }
 
-    private async Task ShowPlaylist()
+    private void ShowPlaylist()
     {
         PlaylistGrid.IsVisible = true;
         PlaylistGrid.Opacity = 1;
