@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using Avalonia.Controls;
+using MediaPlayer.Models;
 using MediaPlayer.Services;
 
 namespace MediaPlayer.Views;
@@ -21,5 +23,11 @@ public partial class PlaylistView : UserControl
     {
         if (List.SelectedIndex >= 0)
             _playlist.SetCurrent(List.SelectedIndex);
+    }
+
+    private void RemoveBtn_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var index = _playlist.Items.IndexOf((sender as Button).Tag as PlaylistItem);
+        _playlist.RemoveAt(index);
     }
 }

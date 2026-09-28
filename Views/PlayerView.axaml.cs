@@ -199,7 +199,7 @@ public partial class PlayerView : UserControl
 
         if (e.ClickCount >= 2)
             ToggleFullScreen?.Invoke();
-        else if (_mpv.IsInitialized && _mpv.CurrentPath != null)
+        else if (_mpv.CurrentPath != null)
             _mpv.PlayPause();
 
         ShowControls();

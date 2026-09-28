@@ -5,35 +5,11 @@
              x:Class="MediaPlayer.Views.PlaylistView"
              Background="{StaticResource BackgroundBrush}">
 
-    <Grid RowDefinitions="Auto,*,Auto">
-
-        <!-- Header -->
-        <Border Grid.Row="0"
-                Padding="16,14"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0"
-                           Text="Cola de reproducción"
-                           FontSize="{StaticResource FontSizeMedium}"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource ForegroundBrush}" />
-                <Button Grid.Column="1"
-                        x:Name="CloseBtn"
-                        Classes="icon"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Width="28" Height="28"
-                        CornerRadius="14"
-                        FontFamily="{StaticResource MonoFontFamily}"
-                        Content="X"
-                        ToolTip.Tip="Cerrar (C)"/>
-            </Grid>
-        </Border>
+    <Grid Margin="2,10,2,2" RowDefinitions="*,Auto">
 
         <!-- Lista con ItemTemplate -->
-        <ListBox Grid.Row="1" x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
-                 Padding="10" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
+        <ListBox Grid.Row="0" x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
+                 Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
 
             <ListBox.Styles>
                 <Style Selector="ListBoxItem">
@@ -47,39 +23,76 @@
                 <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
                     <Setter Property="Background" Value="Transparent"/>
                 </Style>
+                <!-- Botón oculto por defecto -->
+                <Style Selector="ListBoxItem Button /template/ ContentPresenter">
+                    <Setter Property="IsVisible" Value="False"/>
+                </Style>
+
+                <!-- Botón visible al pasar el mouse -->
+                <Style Selector="ListBoxItem:pointerover Button /template/ ContentPresenter">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                    <Setter Property="IsVisible" Value="True"/>
+                </Style>
+                <!-- Hover del botón: se enciende -->
+                <Style Selector="ListBoxItem:pointerover Button:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="#2f55"/>
+                    <Setter Property="Foreground" Value="#faa"/>
+                </Style>
+
+                <!-- Pressed: más fuerte -->
+                <Style Selector="ListBoxItem:pointerover Button:pressed /template/ ContentPresenter">
+                    <Setter Property="Background" Value="#4f55"/>
+                </Style>
             </ListBox.Styles>
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="m:PlaylistItem">
                     <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
-                        <StackPanel Orientation="Horizontal"  Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
-                            <!-- Cover -->
-                            <Border Width="71" Height="40" ClipToBounds="True" CornerRadius="5">
-                                <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
-                            </Border>
+                        <Grid ColumnDefinitions="auto,*">
+                            <StackPanel Orientation="Horizontal" Grid.Column="0" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
+                                <!-- Cover -->
+                                <Border Width="71" Height="40" ClipToBounds="True" CornerRadius="5">
+                                    <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
+                                </Border>
 
-                            <!-- Textos -->
-                            <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                                <!-- Textos -->
+                                <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
+                            <Button Padding="8, 4" Grid.Column="1" Margin="0,0,10,0" x:Name="RemoveBtn"
+                                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                    HorizontalAlignment="Right" CornerRadius="15" Tag="{Binding}" Click="RemoveBtn_Click"
+                                    Content="✕" FontSize="16" FontWeight="Bold">
+                            </Button>
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <!-- Footer -->
-        <Border Grid.Row="2"
-                Padding="8"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,1,0,0">
-            <Button x:Name="ClearBtn"
-                    Content="Limpiar cola"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    CornerRadius="{StaticResource ControlCornerRadius}"
-                    Padding="8,6" />
-        </Border>
+        <!-- Footer: título + 2 icons alineados a la derecha -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,5,Auto" Margin="14,3,8,2">
+            <TextBlock Grid.Column="0" Text="Cola de reproducción"
+                       FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold"
+                       Foreground="{StaticResource MutedBrush}" Margin="0,0,0,2"
+                       VerticalAlignment="Center"/>
 
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="ClearBtn" Margin="0,1,0,0"
+                        Width="33" Height="33" CornerRadius="20"
+                        Classes="texticon" Padding="0"
+                        ToolTip.Tip="Limpiar cola">
+                    <Path Data="M28.987 6.247c-.027-.292-.113-.521-.233-.785-.086-.189-.307-.333-.498-.385a.8.8 0 0 0-.209-.028.8.8 0 0 0 .101-.368.84.84 0 0 0-.245-.589c-.167-.167-.358-.22-.587-.243a10 10 0 0 0-1.037-.045c-.436 0-.873.016-1.307.018q-1.242.007-2.483.058c-1.711.07-3.422.134-5.13.183a334 334 0 0 1-5.105.099c-1.736.023-3.472-.006-5.206.07-.424.018-.846.057-1.266.109-.342.045-.677.091-1.005.2-.222.073-.44.17-.646.275-.332.167-.575.425-.783.727-.216.311-.311.688-.344 1.06-.027.307.105.61.227.883.053.114.134.222.204.329q.175.272.34.548a.87.87 0 0 0 .861.413l.007.001c.212-.001.423-.006.635-.007q.033.836.133 1.67c.101.809.179 1.617.268 2.426.177 1.633.465 3.25.743 4.868.272 1.571.562 3.14.838 4.709.14.797.264 1.594.416 2.387.138.739.309 1.47.453 2.207q.043.225.084.453c.078.418.579.651.962.546.041-.011.071-.038.108-.055a.9.9 0 0 0 .419.135c1.814.058 3.624.066 5.438.054.737-.004 1.476.004 2.212.012.945.01 1.89.02 2.835.004.636-.012 1.273.006 1.907-.039a.9.9 0 0 0 .42-.139c.014.005.023.015.037.019.408.113.935-.134 1.019-.579.157-.828.358-1.647.533-2.471q.269-1.261.494-2.527c.317-1.787.548-3.587.844-5.375.262-1.579.484-3.163.694-4.75l-.029.222q.17-1.23.331-2.462c.081-.588.18-1.173.279-1.759.249-.021.499-.036.747-.07.218-.031.412-.12.612-.206.297-.128.554-.377.71-.657.14-.253.187-.537.212-.82a2 2 0 0 0-.01-.326m-9.635 12.826-.369-.369a80 80 0 0 1-1.577-1.61c-.168-.177-.345-.344-.519-.514.672-.71 1.341-1.421 2.016-2.127.228-.239.468-.466.699-.702l.121.118c.56.533 1.118 1.063 1.654 1.62.234.243.476.475.714.713l-.2.202c-.54.546-1.06 1.114-1.59 1.668zm-9.981-7.399q.865.786 1.722 1.581l.189.172c-.391.419-.778.841-1.195 1.233-.421.396-.857.775-1.287 1.162-.298-.315-.593-.632-.895-.943a.74.74 0 0 0-.46-.21c-.054-.346-.118-.69-.169-1.036-.031-.248-.055-.498-.082-.747a33 33 0 0 1 1.724-1.637c.153.14.3.285.453.425m6.915-1.199c.569.595 1.15 1.171 1.745 1.738q.28.27.557.546c-.247.253-.497.504-.741.761l-1.983 2.097-.176-.161c-.762-.69-1.515-1.39-2.27-2.086.35-.342.7-.682 1.046-1.028.574-.572 1.153-1.139 1.722-1.717.046-.044.069-.099.1-.15m-3.437 4.376a330 330 0 0 1 1.744 1.6c.086.08.167.164.254.243l-.368.389c-.525.56-1.06 1.11-1.59 1.664q-.272.287-.541.576l-.078-.072c-.288-.264-.566-.542-.85-.811-.286-.272-.579-.533-.867-.801-.257-.24-.499-.497-.741-.752.468-.426.95-.837 1.413-1.267.406-.378.782-.786 1.159-1.193zM6.99 10.884c-.049-.459-.103-.916-.128-1.376-.005-.088 0-.176-.004-.264.248.278.518.539.78.801.082.081.17.156.252.237q-.44.403-.879.808zm1.731 7.045c.523.522 1.075 1.012 1.613 1.518l1.01.945-.082.087q-.393.418-.797.824c-.255.255-.515.504-.756.77-.281.307-.551.623-.82.939-.026-.157-.058-.313-.084-.469-.227-1.333-.476-2.663-.716-3.995q.317-.307.632-.619m2.037 5.06c.26-.288.544-.556.818-.83q.384-.382.75-.778l.03-.031c.465.45.921.908 1.391 1.354q.404.387.826.756.158.138.314.279l-.218.227c-1.166.021-2.332.043-3.499.039-.411-.001-.821-.026-1.231-.041.272-.327.533-.661.819-.975m5.173-.33c-.889-.753-1.717-1.573-2.557-2.379.751-.787 1.504-1.572 2.248-2.365l.237-.25c.16.157.329.303.484.465.658.681 1.333 1.342 2.008 2.005-.448.494-.889.993-1.356 1.469-.352.356-.712.702-1.064 1.055m7.038-12.253q.714.591 1.409 1.203c.051.045.111.074.169.105-.036.279-.067.558-.104.837-.076.565-.165 1.128-.251 1.692a.74.74 0 0 0-.348.19q-.37.377-.745.752c-.514-.517-1.005-1.058-1.529-1.565l-.934-.907c.569-.569 1.13-1.146 1.703-1.71.206-.202.42-.398.63-.597M24.03 9.4c.306-.287.606-.58.909-.871q-.102.748-.184 1.499-.364-.313-.725-.628m-2.646-.291.42.343c-.234.236-.476.465-.707.704-.498.516-.989 1.039-1.488 1.552-.474-.473-.955-.939-1.422-1.42-.522-.535-1-1.11-1.472-1.688 1.213-.041 2.426-.094 3.64-.121l.832-.019c-.006.04-.023.077-.023.117 0 .181.074.414.22.532m-6.628-.455q.277.364.565.721a.7.7 0 0 0-.229.154c-.57.591-1.126 1.196-1.697 1.785-.348.358-.709.703-1.068 1.05l-.152-.14c-.574-.54-1.147-1.079-1.728-1.61-.128-.117-.249-.243-.376-.361q.342-.287.686-.572c.376-.311.73-.645 1.085-.979q.421-.001.844-.007zm-5.741.587c-.082-.082-.17-.157-.25-.24l-.258-.265 1.065-.012q-.277.26-.557.517M23.25 20.445a82 82 0 0 1-.455 2.64c-.217 1.164-.482 2.319-.728 3.478-1.628.088-3.262.075-4.89.052-1.686-.023-3.369-.023-5.053-.08q-1.213-.043-2.422-.091h-.028c-.032 0-.06.016-.092.021a98 98 0 0 1-.211-.938q.97.028 1.94.003c.789-.021 1.581-.033 2.372-.049a217 217 0 0 1 4.773-.025q1.14.004 2.277.021c.432.008.791-.365.791-.791a.8.8 0 0 0-.781-.791h-.01c-1.339.02-2.678.027-4.017.042.245-.25.486-.504.735-.751a40 40 0 0 0 1.674-1.73l.268-.289.07.069q.378.38.768.754c.284.276.579.544.844.84.26.292.748.264 1.013 0 .288-.288.259-.721 0-1.013-.251-.282-.529-.537-.797-.801q-.393-.392-.782-.787l-.128-.128a98 98 0 0 1 2.01-2.075c.266-.266.544-.521.82-.779q.223.198.454.389l-.032.2c-.136.869-.252 1.74-.383 2.609M27.329 6.54a2 2 0 0 1-.184.047c-.331.03-.665.047-.998.061a1 1 0 0 0-.176-.024 1 1 0 0 0-.246.038q-.4.011-.8.018a76 76 0 0 0-2.387.08c-.817.039-1.633.052-2.45.085-.846.033-1.689.091-2.535.14-.85.049-1.701.072-2.553.085-.888.012-1.779.043-2.669.054a285 285 0 0 1-6.255.028c-.011 0-.02-.006-.031-.006s-.019.005-.029.006l-.991-.008a6 6 0 0 1-.325-.525l-.005-.018q.014-.052.031-.105.042-.08.09-.154.036-.037.074-.071a3 3 0 0 1 .355-.192 5 5 0 0 1 .897-.199c1.658-.185 3.325-.184 4.992-.199.867-.008 1.736-.035 2.603-.051.892-.017 1.785-.019 2.675-.031 1.693-.019 3.387-.084 5.078-.126 1.647-.041 3.293-.023 4.94-.01.293.004.582.029.873.048-.026.05-.06.095-.075.149-.06.219-.018.404.064.599q.022.063.037.126.003.076 0 .152z"
+                          Fill="{StaticResource AccentBrush}" Width="14" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                </Button>
+
+                <Button x:Name="CloseBtn" FontSize="18"
+                        Classes="texticon bold" Content="✕"
+                        Width="33" Height="33" CornerRadius="20"
+                        ToolTip.Tip="Cerrar (C)"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

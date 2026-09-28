@@ -33,12 +33,7 @@ public class PlaylistService
             if (_currentIndex == value) return;
             int prev = _currentIndex;
             _currentIndex = value;
-
-            if (prev >= 0 && prev < _items.Count)
-                _items[prev].IsCurrent = false;
-            if (_currentIndex >= 0 && _currentIndex < _items.Count)
-                _items[_currentIndex].IsCurrent = true;
-
+            MarkCurrent(prev);
             CurrentChanged?.Invoke(_currentIndex);
         }
     }
@@ -119,7 +114,12 @@ public class PlaylistService
             if (CurrentIndex >= _items.Count)
                 CurrentIndex = _items.Count - 1;
 
-            SetCurrent(CurrentIndex);
+            if (CurrentIndex >= 0)
+            {
+                lastLoaded = -1;
+                MarkCurrent(CurrentIndex);
+                SetCurrent(CurrentIndex);
+            }
         }
     }
 
@@ -280,6 +280,14 @@ public class PlaylistService
             }
             catch { }
         });
+    }
+
+    private void MarkCurrent(int prev)
+    {
+        if (prev >= 0 && prev < _items.Count)
+            _items[prev].IsCurrent = false;
+        if (_currentIndex >= 0 && _currentIndex < _items.Count)
+            _items[_currentIndex].IsCurrent = true;
     }
 
 

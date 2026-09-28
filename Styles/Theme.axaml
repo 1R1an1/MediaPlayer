@@ -20,19 +20,19 @@
     <Color x:Key="TrackEmptyDisabledColor">#2fff</Color>
 
     <!-- Brushes -->
-    <SolidColorBrush x:Key="BackgroundBrush"      Color="{StaticResource BackgroundColor}" />
-    <SolidColorBrush x:Key="ForegroundBrush"      Color="{StaticResource ForegroundColor}" />
-    <SolidColorBrush x:Key="MutedBrush"           Color="{StaticResource MutedColor}" />
-    <SolidColorBrush x:Key="BorderBrush"           Color="{StaticResource BorderColor}" />
-    <SolidColorBrush x:Key="AccentBrush"          Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="BackgroundBrush"         Color="{StaticResource BackgroundColor}" />
+    <SolidColorBrush x:Key="ForegroundBrush"         Color="{StaticResource ForegroundColor}" />
+    <SolidColorBrush x:Key="MutedBrush"              Color="{StaticResource MutedColor}" />
+    <SolidColorBrush x:Key="BorderBrush"             Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="AccentBrush"             Color="{StaticResource AccentColor}" />
 
-    <SolidColorBrush x:Key="IslandBrush"          Color="{StaticResource IslandColor}" />
+    <SolidColorBrush x:Key="IslandBrush"             Color="{StaticResource IslandColor}" />
 
-    <SolidColorBrush x:Key="HoverBrush"           Color="{StaticResource HoverColor}" />
-    <SolidColorBrush x:Key="PressedBrush"         Color="{StaticResource PressedColor}" />
-    <SolidColorBrush x:Key="DisabledBrush"        Color="{StaticResource DisabledColor}" />
+    <SolidColorBrush x:Key="HoverBrush"              Color="{StaticResource HoverColor}" />
+    <SolidColorBrush x:Key="PressedBrush"            Color="{StaticResource PressedColor}" />
+    <SolidColorBrush x:Key="DisabledBrush"           Color="{StaticResource DisabledColor}" />
 
-    <SolidColorBrush x:Key="TrackEmptyBrush"      Color="{StaticResource TrackEmptyColor}" />
+    <SolidColorBrush x:Key="TrackEmptyBrush"         Color="{StaticResource TrackEmptyColor}" />
     <SolidColorBrush x:Key="TrackEmptyDisabledBrush" Color="{StaticResource TrackEmptyDisabledColor}" />
 
     <!-- <SolidColorBrush x:Key="SeparatorBrush"       Color="{StaticResource SeparatorColor}" /> -->

@@ -22,9 +22,9 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             Mpv = new MpvPlayer();
+            Mpv.InitForRenderApi();
             Mpv.ErrorOccurred += Console.WriteLine;
             Playlist = new PlaylistService();
-            Mpv.InitForRenderApi();
             _ = StartMprisAsync(Mpv);
 
             var main = new MainWindow();
