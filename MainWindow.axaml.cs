@@ -89,16 +89,16 @@ public partial class MainWindow : Window
         MprisService.Update();
     }
 
+    private string[] filesFilter = [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
     private async Task OpenFilePickerAsync()
     {
-        string[] filter = ["*.mp4", "*.mkv", "*.webm", "*.avi", "*.mov", "*.flv", "*.wmv", "*.mpg", "*.mpeg", "*.m4v", "*.ts", "*.mp3"];
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Abrir video",
             AllowMultiple = true,
             FileTypeFilter =
             [
-                new FilePickerFileType("Videos"){ Patterns = filter },
+                new FilePickerFileType("Videos"){ Patterns = Array.ConvertAll(filesFilter, f => $"*{f}") },
                 new FilePickerFileType("Todos") { Patterns = ["*.*"] }
             ]
         });
@@ -107,7 +107,26 @@ public partial class MainWindow : Window
         var filePath = files.Select(f => f.Path.LocalPath).Where(IsMediaFile);
         if (files == null || filePath.Count() == 0) return;
 
-        await _playlist.AddNew(filePath);
+        await _playlist.Add(filePath);
+    }
+
+    private async Task OpenFolderPickerAsync()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Abrir carpeta",
+            AllowMultiple = false
+        });
+
+        if (folders == null || folders.Count == 0) return;
+
+        var path = folders[0].Path.LocalPath;
+        if (!Directory.Exists(path)) return;
+
+        var files = LinuxKRL.GetReadableFiles(path).Where(IsMediaFile);
+
+        if (files.Count() == 0) return;
+        await _playlist.AddNew(files);
     }
 
     private void ToggleFullscreen()
@@ -121,6 +140,12 @@ public partial class MainWindow : Window
         if (e.Key == Key.O && e.KeyModifiers == KeyModifiers.Control)
         {
             await OpenFilePickerAsync();
+            e.Handled = true;
+            return;
+        }
+        else if (e.Key == Key.O && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
+        {
+            await OpenFolderPickerAsync();
             e.Handled = true;
             return;
         }
@@ -148,11 +173,10 @@ public partial class MainWindow : Window
         await _playlist.Add(paths);
     }
 
-    private static bool IsMediaFile(string path)
+    private bool IsMediaFile(string path)
     {
         string ext = Path.GetExtension(path).ToLowerInvariant();
-        string[] exts = { ".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3" };
-        return Array.IndexOf(exts, ext) >= 0;
+        return Array.IndexOf(filesFilter, ext) >= 0;
     }
 
     private void ShowPlaylist()
