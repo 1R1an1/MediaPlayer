@@ -1,7 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:v="using:MediaPlayer.Views"
-             x:Class="MediaPlayer.Views.PlayerView">
+             xmlns:skp="using:Avalonia.Svg"
+             x:Class="MediaPlayer.Views.PlayerView" Background="Transparent">
 
     <Grid x:Name="RootGrid" Margin="2,0,0,0" Background="{StaticResource BackgroundBrush}">
 
@@ -36,6 +37,71 @@
             </Border>
         </Grid>
 
+        <!-- Overlay de video -->
+        <Grid x:Name="OverlayGrid">
+            <Grid ColumnDefinitions="0.75*,1.85*,7.40*" RowDefinitions="1*,1*,7*">
+                <Viewbox x:Name="VolumeOverlay" Grid.Row="1" Grid.Column="1" Stretch="Uniform"
+                         HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0" ClipToBounds="False">
+                    <Viewbox.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                        </Transitions>
+                    </Viewbox.Transitions>
+
+                    <StackPanel Orientation="Horizontal" ClipToBounds="False" MinWidth="40">
+                        <TextBlock FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" FontSize="25" Text="Volumen: ">
+                            <TextBlock.Effect>
+                                <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <TextBlock x:Name="VolumeTB" FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" FontSize="25" Text="100">
+                            <TextBlock.Effect>
+                                <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <TextBlock FontWeight="Bold" FontFamily="{StaticResource MonoFontFamily}" FontSize="25" Text="%">
+                            <TextBlock.Effect>
+                                <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
+                            </TextBlock.Effect>
+                        </TextBlock>
+                    </StackPanel>
+                </Viewbox>
+                <TextBlock x:Name="TitleVideo" Opacity="1" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" ClipToBounds="False"
+                           VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="22.5" Margin="10,10,10,0" Text="" TextTrimming="CharacterEllipsis">
+                    <TextBlock.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                        </Transitions>
+                    </TextBlock.Transitions>
+                    <TextBlock.Effect>
+                        <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
+                    </TextBlock.Effect>
+                </TextBlock>
+            </Grid>
+            <Grid ColumnDefinitions="3*,*,3*" RowDefinitions="3*,*,3*">
+                <skp:Svg x:Name="OverlayPlay" Path="avares://MediaPlayer/Svgs/Play.svg" Margin="0,0,-5,0" CurrentColor="{StaticResource AccentColor}" Grid.Column="1" Grid.Row="1" Opacity="0">
+                    <skp:Svg.Effect>
+                        <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
+                    </skp:Svg.Effect>
+                    <skp:Svg.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                        </Transitions>
+                    </skp:Svg.Transitions>
+                </skp:Svg>
+                <skp:Svg x:Name="OverlayPause" Path="avares://MediaPlayer/Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Grid.Column="1" Grid.Row="1" Opacity="0">
+                    <skp:Svg.Effect>
+                        <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
+                    </skp:Svg.Effect>
+                    <skp:Svg.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                        </Transitions>
+                    </skp:Svg.Transitions>
+                </skp:Svg>
+            </Grid>
+        </Grid>
+
         <!-- Overlay que contiene las islas. Se oculta con Opacity (auto-hide). -->
         <Border x:Name="ControlsOverlay"
                 VerticalAlignment="Bottom"
@@ -58,16 +124,16 @@
                 <Border Classes="Island" Grid.Column="0">
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <Button Classes="icon" x:Name="PrevBtn" CornerRadius="15" ToolTip.Tip="Anterior (B)">
-                            <Svg Path="Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                            <skp:Svg Path="avares://MediaPlayer/Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
                         </Button>
                         <Button Classes="icon" CornerRadius="15" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pausa (Space)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="PlayIcon" Path="Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <Svg x:Name="PauseIcon" Path="Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
+                                <skp:Svg x:Name="PlayIcon" Path="avares://MediaPlayer/Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <skp:Svg x:Name="PauseIcon" Path="avares://MediaPlayer/Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
                         <Button Classes="icon" CornerRadius="15" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
-                            <Svg Path="Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                            <skp:Svg Path="avares://MediaPlayer/Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
                         </Button>
                     </StackPanel>
                 </Border>
@@ -103,25 +169,25 @@
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <Button Classes="icon" CornerRadius="15" x:Name="MuteBtn" ToolTip.Tip="Mute (M)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="VolIcon" Path="Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <Svg x:Name="MuteIcon" Path="Svgs/VolumeMute.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5" IsVisible="False" />
+                                <skp:Svg x:Name="VolIcon" Path="avares://MediaPlayer/Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <skp:Svg x:Name="MuteIcon" Path="avares://MediaPlayer/Svgs/VolumeMute.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
 
                         <Button Classes="icon" x:Name="LoopBtn" CornerRadius="15" ToolTip.Tip="Loop (L)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="LoopIcon" Path="Svgs/Loop.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>
-                                <Svg x:Name="LoopOneIcon" Path="Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
+                                <skp:Svg x:Name="LoopIcon" Path="avares://MediaPlayer/Svgs/Loop.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>
+                                <skp:Svg x:Name="LoopOneIcon" Path="avares://MediaPlayer/Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
 
                         <Button Classes="icon" x:Name="AudioBtn" CornerRadius="15" ToolTip.Tip="Pista de audio (J)">
-                            <Svg Path="Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                            <skp:Svg Path="avares://MediaPlayer/Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
                         </Button>
                         <Button Classes="icon" x:Name="FullScreenBtn" CornerRadius="15" ToolTip.Tip="Pantalla completa (F)">
                             <Grid HorizontalAlignment="Center">
-                                <Svg x:Name="FullScreenIcon" Path="Svgs/Fullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <Svg x:Name="NoFullScreenIcon" Path="Svgs/NoFullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
+                                <skp:Svg x:Name="FullScreenIcon" Path="avares://MediaPlayer/Svgs/Fullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                                <skp:Svg x:Name="NoFullScreenIcon" Path="avares://MediaPlayer/Svgs/NoFullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
                             </Grid>
                         </Button>
                     </StackPanel>

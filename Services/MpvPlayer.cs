@@ -209,7 +209,7 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     int val = Marshal.PtrToStructure<int>(prop.data);
                     IsPlaying = val == 0;
-                    Dispatcher.UIThread.Invoke(() => { IsPlayingChanged?.Invoke(IsPlaying); });
+                    IsPlayingChanged?.Invoke(IsPlaying);
                     MprisService.Update();
                 }
                 break;
@@ -219,7 +219,7 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     double v = Marshal.PtrToStructure<double>(prop.data);
                     Volume = v / 100.0;
-                    Dispatcher.UIThread.Invoke(() => OnVolumeChanged?.Invoke(Volume));
+                    OnVolumeChanged?.Invoke(Volume);
                     MprisService.Update();
                 }
                 break;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Timers;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -20,7 +21,7 @@ public partial class PlayerView : UserControl
     private MpvPlayer _mpv => App.Mpv;
     private PlaylistService _playlist => App.Playlist;
 
-    private Timer _hideTimer;
+    private System.Timers.Timer _hideTimer;
     private bool _seeking;
     private bool _canHide = true;
     private bool _canHideVolume = true;
@@ -51,14 +52,15 @@ public partial class PlayerView : UserControl
         VolumeSlider.ValueChanged += (_, _) => _mpv?.SetVolume01(VolumeSlider.Value);
 
         // --- MPV-OTHERS --- //
-        _mpv.IsPlayingChanged += p => { PlayIcon.IsVisible = !p; PauseIcon.IsVisible = p; };
+        _mpv.IsPlayingChanged += SetPlayPause;
         _mpv.PositionChanged += OnPositionChanged;
         _mpv.DurationChanged += sec => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); };
-        _mpv.OnVolumeChanged += v => { if (!_seeking) VolumeSlider.Value = v; };
+        _mpv.OnVolumeChanged += SetVolumen;
         _mpv.MuteChanged += m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; };
         _mpv.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
         _mpv.FileLoaded += () => VideoHost.IsVisible = true;
         _playlist.LoopModeChanged += l => { Dispatcher.UIThread.Invoke(() => SetLoopModeBtn(l)); };
+        _playlist.CurrentChanged += _ => Dispatcher.UIThread.Invoke(() => TitleVideo.Text = _playlist.Current.Title);
 
         // --- TUNNEL BINDINGS --- //
         SeekBar.AddHandler(PointerPressedEvent, (_, _) => { if (_seeking) return; _seeking = true; _canHide = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -72,7 +74,7 @@ public partial class PlayerView : UserControl
             btn.AddHandler(KeyUpEvent, (_, e) => { if (e.Key == Key.Space) e.Handled = true; }, RoutingStrategies.Tunnel, handledEventsToo: true);
 
         // --- TIMER --- //
-        _hideTimer = new Timer(3000) { AutoReset = false };
+        _hideTimer = new(3000) { AutoReset = false };
         _hideTimer.Elapsed += (_, _) => Dispatcher.UIThread.Invoke(HideControls);
 
         ShowControls();
@@ -92,6 +94,7 @@ public partial class PlayerView : UserControl
     private void ShowControls()
     {
         ControlsOverlay.Opacity = 1;
+        TitleVideo.Opacity = 1;
         _hideTimer?.Stop();
         _hideTimer?.Start();
     }
@@ -101,8 +104,61 @@ public partial class PlayerView : UserControl
         if (_canHide)
         {
             ControlsOverlay.Opacity = 0;
+            TitleVideo.Opacity = 0;
             _hideTimer?.Stop();
         }
+    }
+
+    private CancellationTokenSource volumeCts;
+    private async void SetVolumen(double volume)
+    {
+        volumeCts?.Cancel();
+        volumeCts = new();
+        var token = volumeCts.Token;
+
+        var s = ((int)(volume * 100)).ToString();
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            VolumeSlider.Value = volume;
+            VolumeTB.Text = s.Length == 1 ? s + "  " : s.Length == 2 ? s + " " : s;
+            VolumeOverlay.Opacity = 1;
+        });
+        try
+        {
+            await Task.Delay(1000, token);
+            Dispatcher.UIThread.Invoke(() => VolumeOverlay.Opacity = 0);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private CancellationTokenSource playCts;
+    private async void SetPlayPause(bool state)
+    {
+        playCts?.Cancel();
+        playCts = new();
+        var token = playCts.Token;
+
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            PauseIcon.IsVisible = state;
+            PlayIcon.IsVisible = !state;
+
+            OverlayPause.Opacity = state ? 1 : 0;
+            OverlayPlay.Opacity = !state ? 1 : 0;
+        });
+        try
+        {
+            await Task.Delay(500, token);
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                if (state)
+                    OverlayPause.Opacity = 0;
+                else
+                    OverlayPlay.Opacity = 0;
+            });
+
+        }
+        catch (OperationCanceledException) { }
     }
 
     private bool IsPointerInside(Visual visual, Point rootPoint)

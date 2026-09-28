@@ -16,11 +16,15 @@
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Svg.Controls.Skia.Avalonia" Version="12.0.0.17" />
+    <PackageReference Include="Svg.Controls.Avalonia" Version="12.0.0.17" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="SharpUtils\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Svgs/*.svg" />
   </ItemGroup>
 
   <ItemGroup>
