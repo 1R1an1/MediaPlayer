@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using MediaPlayer.Models;
 using MediaPlayer.Native;
@@ -17,12 +17,10 @@ namespace MediaPlayer.Services;
 /// <summary>
 /// Wrapper sobre libmpv en modo render API. Hereda de MprisSource.
 /// </summary>
-public class MpvPlayer : MprisSource, IDisposable
+public class MpvPlayer : MprisSource
 {
     private IntPtr _handle;
-    private Thread _eventThread;
     private volatile bool _running;
-    private LibMpv.MpvWakeupCallback _wakeupCb;
     private bool _eofFired;
 
     // Estado público (accedido desde el thread de eventos y desde UI).
@@ -96,7 +94,9 @@ public class MpvPlayer : MprisSource, IDisposable
             throw new InvalidOperationException("mpv_initialize() falló.");
 
         ObserveProperties();
-        StartEventLoop();
+
+        _running = true;
+        Task.Run(EventLoop);
     }
 
     private void ObserveProperties()
@@ -114,19 +114,7 @@ public class MpvPlayer : MprisSource, IDisposable
         LibMpv.mpv_observe_property(_handle, 11, "metadata/list/count", LibMpv.MPV_FORMAT_INT64);
     }
 
-    private void StartEventLoop()
-    {
-        _wakeupCb = new LibMpv.MpvWakeupCallback(OnWakeup);
-        LibMpv.mpv_set_wakeup_callback(_handle, _wakeupCb, IntPtr.Zero);
-
-        _running = true;
-        _eventThread = new Thread(EventLoop) { IsBackground = true, Name = "mpv-events" };
-        _eventThread.Start();
-    }
-
-    private static void OnWakeup(IntPtr ctx) { }
-
-    private void EventLoop()
+    private async Task EventLoop()
     {
         while (_running)
         {
@@ -136,7 +124,7 @@ public class MpvPlayer : MprisSource, IDisposable
             var ev = Marshal.PtrToStructure<LibMpv.mpv_event>(evPtr);
             if (ev.event_id == LibMpv.MPV_EVENT_NONE) continue;
 
-            try { HandleEvent(ev); }
+            try { await HandleEvent(ev); }
             catch (Exception ex)
             {
                 ErrorOccurred?.Invoke("event loop: " + ex.Message);
@@ -144,12 +132,12 @@ public class MpvPlayer : MprisSource, IDisposable
         }
     }
 
-    private void HandleEvent(LibMpv.mpv_event ev)
+    private async Task HandleEvent(LibMpv.mpv_event ev)
     {
         switch (ev.event_id)
         {
             case LibMpv.MPV_EVENT_PROPERTY_CHANGE:
-                HandlePropertyChange(ev);
+                await HandlePropertyChange(ev);
                 break;
 
             case LibMpv.MPV_EVENT_FILE_LOADED:
@@ -178,7 +166,7 @@ public class MpvPlayer : MprisSource, IDisposable
         }
     }
 
-    private void HandlePropertyChange(LibMpv.mpv_event ev)
+    private async Task HandlePropertyChange(LibMpv.mpv_event ev)
     {
         var prop = Marshal.PtrToStructure<LibMpv.mpv_event_property>(ev.data);
         string name = Marshal.PtrToStringUTF8(prop.name);
@@ -232,7 +220,7 @@ public class MpvPlayer : MprisSource, IDisposable
 
             case "path":
                 CurrentPath = ReadPropString(prop);
-                LoadCover();
+                await LoadCover();
                 Dispatcher.UIThread.Invoke(() => PathChanged?.Invoke(CurrentPath));
                 break;
 
@@ -296,7 +284,7 @@ public class MpvPlayer : MprisSource, IDisposable
         MprisService.Update();
     }
 
-    private void LoadCover()
+    private async Task LoadCover()
     {
         if (string.IsNullOrEmpty(CurrentPath) || !File.Exists(CurrentPath))
         {
@@ -336,11 +324,11 @@ public class MpvPlayer : MprisSource, IDisposable
 
             var extract = new Process { StartInfo = psi };
             extract.Start();
-            extract.WaitForExit(5000);
+            await extract.WaitForExitAsync();
 
             if (File.Exists(coverFile))
             {
-                byte[] bytes = File.ReadAllBytes(coverFile);
+                byte[] bytes = await File.ReadAllBytesAsync(coverFile);
 
                 // Calcular hash MD5 de los bytes para el dedup de MPRIS.
                 using var md5 = MD5.Create();
@@ -490,15 +478,5 @@ public class MpvPlayer : MprisSource, IDisposable
             for (int i = 0; i < args.Length; i++)
                 if (ptrs[i] != IntPtr.Zero) Marshal.FreeHGlobal(ptrs[i]);
         }
-    }
-
-    public void Dispose()
-    {
-        if (_handle == IntPtr.Zero) return;
-        _running = false;
-        try { LibMpv.mpv_wakeup(_handle); } catch { }
-        _eventThread?.Join(2000);
-        try { LibMpv.mpv_terminate_destroy(_handle); } catch { }
-        _handle = IntPtr.Zero;
     }
 }

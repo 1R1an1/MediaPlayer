@@ -83,13 +83,6 @@ public partial class PlayerView : UserControl
         _mpv.Pause();
     }
 
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        _hideTimer?.Stop();
-        _mpv?.Dispose();
-    }
-
     private void ShowControls()
     {
         ControlsOverlay.Opacity = 1;

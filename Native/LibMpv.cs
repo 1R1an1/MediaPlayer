@@ -11,7 +11,7 @@ internal static class LibMpv
     internal const string LibName = "libmpv.so.2";
 
     // Formats
-    internal const int MPV_FORMAT_NONE = 0;
+    // internal const int MPV_FORMAT_NONE = 0;
     internal const int MPV_FORMAT_STRING = 1;
     internal const int MPV_FORMAT_FLAG = 3;
     internal const int MPV_FORMAT_INT64 = 4;
@@ -20,13 +20,13 @@ internal static class LibMpv
     // Events
     internal const int MPV_EVENT_NONE = 0;
     internal const int MPV_EVENT_SHUTDOWN = 1;
-    internal const int MPV_EVENT_START_FILE = 6;
+    // internal const int MPV_EVENT_START_FILE = 6;
     internal const int MPV_EVENT_END_FILE = 7;
     internal const int MPV_EVENT_FILE_LOADED = 8;
     internal const int MPV_EVENT_PROPERTY_CHANGE = 22;
 
     // End-file reasons
-    internal const int MPV_END_FILE_REASON_EOF = 0;
+    // internal const int MPV_END_FILE_REASON_EOF = 0;
     internal const int MPV_END_FILE_REASON_ERROR = 3;
 
     // Render API constants
@@ -37,9 +37,6 @@ internal static class LibMpv
     public const int MPV_RENDER_PARAM_OPENGL_FBO = 3;
     public const int MPV_RENDER_PARAM_FLIP_Y = 4;
     public const ulong MPV_RENDER_UPDATE_FRAME = 1 << 0;
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void MpvWakeupCallback(IntPtr ctx);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate IntPtr MpvGetProcAddressDelegate(IntPtr ctx, [MarshalAs(UnmanagedType.LPStr)] string name);
@@ -104,9 +101,6 @@ internal static class LibMpv
     public static extern int mpv_initialize(IntPtr handle);
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void mpv_terminate_destroy(IntPtr handle);
-
-    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
     public static extern int mpv_set_option_string(
         IntPtr handle,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string name,
@@ -155,13 +149,6 @@ internal static class LibMpv
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr mpv_wait_event(IntPtr handle, double timeout);
-
-    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void mpv_wakeup(IntPtr handle);
-
-    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void mpv_set_wakeup_callback(
-        IntPtr handle, MpvWakeupCallback callback, IntPtr ctx);
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
     public static extern void mpv_free(IntPtr data);
