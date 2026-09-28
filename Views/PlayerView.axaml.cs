@@ -58,9 +58,8 @@ public partial class PlayerView : UserControl
         _mpv.OnVolumeChanged += SetVolumen;
         _mpv.MuteChanged += m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; };
         _mpv.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
-        _mpv.FileLoaded += () => VideoHost.IsVisible = true;
+        _mpv.MetadataChanged += () => Dispatcher.UIThread.Invoke(() => TitleVideo.Text = _mpv.Title);
         _playlist.LoopModeChanged += l => { Dispatcher.UIThread.Invoke(() => SetLoopModeBtn(l)); };
-        _playlist.CurrentChanged += _ => Dispatcher.UIThread.Invoke(() => TitleVideo.Text = _playlist.Current.Title);
 
         // --- TUNNEL BINDINGS --- //
         SeekBar.AddHandler(PointerPressedEvent, (_, _) => { if (_seeking) return; _seeking = true; _canHide = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);

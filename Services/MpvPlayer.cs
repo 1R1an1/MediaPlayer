@@ -32,7 +32,6 @@ public class MpvPlayer : MprisSource, IDisposable
     public bool IsMuted;
     public string CurrentPath;
     public List<AudioTrack> AudioTracks = new List<AudioTrack>();
-    public int CurrentAudioId = -1;
     public bool IsInitialized => _handle != IntPtr.Zero;
     public IntPtr MpvHandle => _handle;
 
@@ -43,7 +42,7 @@ public class MpvPlayer : MprisSource, IDisposable
     public event Action<double> OnVolumeChanged;
     public event Action<bool> MuteChanged;
     public event Action<string> PathChanged;
-    public event Action FileLoaded;
+    public event Action MetadataChanged;
     public event Action EndReached;
     public event Action<string> ErrorOccurred;
 
@@ -106,7 +105,6 @@ public class MpvPlayer : MprisSource, IDisposable
         LibMpv.mpv_observe_property(_handle, 1, "duration", LibMpv.MPV_FORMAT_DOUBLE);
         LibMpv.mpv_observe_property(_handle, 2, "pause", LibMpv.MPV_FORMAT_FLAG);
         LibMpv.mpv_observe_property(_handle, 3, "volume", LibMpv.MPV_FORMAT_DOUBLE);
-        LibMpv.mpv_observe_property(_handle, 4, "speed", LibMpv.MPV_FORMAT_DOUBLE);
         LibMpv.mpv_observe_property(_handle, 5, "mute", LibMpv.MPV_FORMAT_FLAG);
         LibMpv.mpv_observe_property(_handle, 6, "path", LibMpv.MPV_FORMAT_STRING);
         LibMpv.mpv_observe_property(_handle, 7, "media-title", LibMpv.MPV_FORMAT_STRING);
@@ -141,7 +139,7 @@ public class MpvPlayer : MprisSource, IDisposable
             try { HandleEvent(ev); }
             catch (Exception ex)
             {
-                Dispatcher.UIThread.Invoke(() => ErrorOccurred?.Invoke("event loop: " + ex.Message));
+                ErrorOccurred?.Invoke("event loop: " + ex.Message);
             }
         }
     }
@@ -162,7 +160,6 @@ public class MpvPlayer : MprisSource, IDisposable
                 {
                     DurationChanged?.Invoke(DurationSec);
                     PositionChanged?.Invoke(PositionSec);
-                    FileLoaded?.Invoke();
                 });
                 break;
 
@@ -171,7 +168,7 @@ public class MpvPlayer : MprisSource, IDisposable
                 if (ef.reason == LibMpv.MPV_END_FILE_REASON_ERROR)
                 {
                     string msg = GetStringProperty("error-string") ?? "unknown error";
-                    Dispatcher.UIThread.Invoke(() => ErrorOccurred?.Invoke(msg));
+                    ErrorOccurred?.Invoke(msg);
                 }
                 break;
 
@@ -224,14 +221,6 @@ public class MpvPlayer : MprisSource, IDisposable
                 }
                 break;
 
-            case "speed":
-                if (prop.format == LibMpv.MPV_FORMAT_DOUBLE)
-                {
-                    Rate = Marshal.PtrToStructure<double>(prop.data);
-                    MprisService.Update();
-                }
-                break;
-
             case "mute":
                 if (prop.format == LibMpv.MPV_FORMAT_FLAG)
                 {
@@ -249,6 +238,7 @@ public class MpvPlayer : MprisSource, IDisposable
 
             case "media-title":
                 Title = ReadPropString(prop);
+                MetadataChanged?.Invoke();
                 MprisService.Update();
                 break;
 
@@ -258,14 +248,13 @@ public class MpvPlayer : MprisSource, IDisposable
 
             case "metadata/list/count":
                 LoadMetadata();
+                MetadataChanged?.Invoke();
                 break;
 
             case "aid":
                 if (prop.format == LibMpv.MPV_FORMAT_INT64)
-                {
-                    CurrentAudioId = (int)Marshal.PtrToStructure<long>(prop.data);
-                    foreach (var t in AudioTracks) t.IsSelected = t.Id == CurrentAudioId;
-                }
+                    foreach (var t in AudioTracks)
+                        t.IsSelected = t.Id == (int)Marshal.PtrToStructure<long>(prop.data);
                 break;
 
             case "eof-reached":
@@ -401,7 +390,6 @@ public class MpvPlayer : MprisSource, IDisposable
         }
 
         AudioTracks = tracks;
-        CurrentAudioId = currentAid;
     }
 
     // Control API

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -21,6 +22,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             Mpv = new MpvPlayer();
+            Mpv.ErrorOccurred += Console.WriteLine;
             Playlist = new PlaylistService();
             Mpv.InitForRenderApi();
             _ = StartMprisAsync(Mpv);
