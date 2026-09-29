@@ -178,8 +178,11 @@ public class MpvPlayer : MprisSource
             case "time-pos":
                 if (prop.format == LibMpv.MPV_FORMAT_DOUBLE)
                 {
+                    var old = PositionSec;
                     PositionSec = Marshal.PtrToStructure<double>(prop.data);
                     Dispatcher.UIThread.Invoke(() => PositionChanged?.Invoke(PositionSec));
+                    if (Math.Abs(old - PositionSec) > 0.2)
+                        MprisService.Update();
                 }
                 break;
 
