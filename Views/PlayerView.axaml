@@ -12,24 +12,29 @@
         <!-- Popup del slider de volumen. Va AFUERA del overlay para que no
         lo recorten los contenedores chicos. -->
         <Grid x:Name="VolumePopup"
-              Margin="0,0,125,30"
+              Margin="0,0,120,40"
               VerticalAlignment="Bottom"
               HorizontalAlignment="Right"
-              IsVisible="False"
+              IsHitTestVisible="False"
+              Opacity="0"
               Height="150"
-              Background="Transparent"
-              IsHitTestVisible="True">
+              Background="Transparent">
+            <Grid.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Grid.Transitions>
             <Border
-                Background="{StaticResource IslandBrush}"
-                CornerRadius="{StaticResource PopupCornerRadius}"
-                BorderBrush="{StaticResource BorderColor}"
-                BorderThickness="{StaticResource AllBorderThickness}"
+                Classes="Island"
                 VerticalAlignment="Top"
+                BorderThickness="1.5"
+                Background="#da111111"
+                BorderBrush="{StaticResource DividerBrush}"
                 Height="120"
-                Padding="5,12"
-                BoxShadow="{StaticResource ControlShadow}">
+                Padding="5">
                 <Slider x:Name="VolumeSlider"
                         Orientation="Vertical"
+                        Foreground="#ccc"
                         Height="100"
                         Minimum="0"
                         Maximum="1"
@@ -103,95 +108,76 @@
         </Grid>
 
         <!-- Overlay que contiene las islas. Se oculta con Opacity (auto-hide). -->
+        <!-- Barra única de controles -->
         <Border x:Name="ControlsOverlay"
                 VerticalAlignment="Bottom"
-                Margin="10,12,12,12"
-                Background="Transparent"
-                IsHitTestVisible="True"
-                Opacity="1"
-                IsVisible="True">
-
+                Margin="12,0,12,14"
+                Classes="Island">
             <Border.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
                 </Transitions>
             </Border.Transitions>
 
-            <!-- Tres islas separadas horizontalmente -->
-            <Grid ColumnSpacing="8" ColumnDefinitions="auto,*, auto">
+            <Grid ColumnDefinitions="auto,*,auto" ColumnSpacing="12">
 
-                <!-- Isla 1: botones de reproducción -->
-                <Border Classes="Island" Grid.Column="0">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <Button Classes="icon" x:Name="PrevBtn" CornerRadius="15" ToolTip.Tip="Anterior (B)">
-                            <skp:Svg Path="avares://MediaPlayer/Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                        </Button>
-                        <Button Classes="icon" CornerRadius="15" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pausa (Space)">
-                            <Grid HorizontalAlignment="Center">
-                                <skp:Svg x:Name="PlayIcon" Path="avares://MediaPlayer/Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <skp:Svg x:Name="PauseIcon" Path="avares://MediaPlayer/Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
-                            </Grid>
-                        </Button>
-                        <Button Classes="icon" CornerRadius="15" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
-                            <skp:Svg Path="avares://MediaPlayer/Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                        </Button>
-                    </StackPanel>
-                </Border>
+                <!-- Izquierda: Prev | Play/Pause | Next -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Classes="icon" x:Name="PrevBtn" ToolTip.Tip="Anterior (B)">
+                        <skp:Svg Path="avares://MediaPlayer/Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="18"/>
+                    </Button>
+                    <Button Classes="icon" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pausa (Space)">
+                        <Grid HorizontalAlignment="Center">
+                            <skp:Svg x:Name="PlayIcon" Path="avares://MediaPlayer/Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
+                            <skp:Svg x:Name="PauseIcon" Path="avares://MediaPlayer/Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="20" IsVisible="False"/>
+                        </Grid>
+                    </Button>
+                    <Button Classes="icon" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
+                        <skp:Svg Path="avares://MediaPlayer/Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="18"/>
+                    </Button>
+                </StackPanel>
 
-                <!-- Isla 2: tiempos + seek bar -->
-                <Border Classes="Island" Grid.Column="1">
-                    <Grid ColumnDefinitions="auto,*,auto" Margin="3.5,0" ColumnSpacing="8">
-                        <TextBlock x:Name="CurrentTimeText"
-                                   Text="0:00"
-                                   Padding="{StaticResource IslandComPadding}"
-                                   FontFamily="{StaticResource MonoFontFamily}"
-                                   FontSize="{StaticResource FontSizeSmall}"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   VerticalAlignment="Center"/>
-                        <Slider x:Name="SeekBar"
-                                Minimum="0" Grid.Column="1"
-                                Maximum="1"
-                                VerticalAlignment="Center"
-                                SmallChange="1"
-                                LargeChange="10" />
-                        <TextBlock x:Name="DurationText"
-                                   Padding="{StaticResource IslandComPadding}"
-                                   Text="0:00" Grid.Column="2"
-                                   FontFamily="{StaticResource MonoFontFamily}"
-                                   FontSize="{StaticResource FontSizeSmall}"
-                                   Foreground="{StaticResource MutedBrush}"
-                                   VerticalAlignment="Center"/>
-                    </Grid>
-                </Border>
+                <!-- Centro: tiempos + seek -->
+                <Grid Grid.Column="1" ColumnDefinitions="auto,*,auto" ColumnSpacing="7.5">
+                    <TextBlock x:Name="CurrentTimeText" Text="0:00"
+                               FontFamily="{StaticResource MonoFontFamily}"
+                               FontSize="{StaticResource FontSizeSmall}"
+                               Foreground="{StaticResource MutedBrush}"
+                               VerticalAlignment="Center"/>
+                    <Slider x:Name="SeekBar" Grid.Column="1" Minimum="0" Maximum="1"
+                            VerticalAlignment="Center"
+                            SmallChange="1" LargeChange="10"/>
+                    <TextBlock x:Name="DurationText" Text="0:00" Grid.Column="2"
+                               FontFamily="{StaticResource MonoFontFamily}"
+                               FontSize="{StaticResource FontSizeSmall}"
+                               Foreground="{StaticResource MutedBrush}"
+                               VerticalAlignment="Center"/>
+                </Grid>
 
-                <!-- Isla 3: volumen + loop + audio -->
-                <Border Classes="Island" Grid.Column="2">
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <Button Classes="icon" CornerRadius="15" x:Name="MuteBtn" ToolTip.Tip="Mute (M)">
-                            <Grid HorizontalAlignment="Center">
-                                <skp:Svg x:Name="VolIcon" Path="avares://MediaPlayer/Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <skp:Svg x:Name="MuteIcon" Path="avares://MediaPlayer/Svgs/VolumeMute.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5" IsVisible="False" />
-                            </Grid>
-                        </Button>
-
-                        <Button Classes="icon" x:Name="LoopBtn" CornerRadius="15" ToolTip.Tip="Loop (L)">
-                            <Grid HorizontalAlignment="Center">
-                                <skp:Svg x:Name="LoopIcon" Path="avares://MediaPlayer/Svgs/Loop.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>
-                                <skp:Svg x:Name="LoopOneIcon" Path="avares://MediaPlayer/Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
-                            </Grid>
-                        </Button>
-
-                        <Button Classes="icon" x:Name="AudioBtn" CornerRadius="15" ToolTip.Tip="Pista de audio (J)">
-                            <skp:Svg Path="avares://MediaPlayer/Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                        </Button>
-                        <Button Classes="icon" x:Name="FullScreenBtn" CornerRadius="15" ToolTip.Tip="Pantalla completa (F)">
-                            <Grid HorizontalAlignment="Center">
-                                <skp:Svg x:Name="FullScreenIcon" Path="avares://MediaPlayer/Svgs/Fullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
-                                <skp:Svg x:Name="NoFullScreenIcon" Path="avares://MediaPlayer/Svgs/NoFullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False" />
-                            </Grid>
-                        </Button>
-                    </StackPanel>
-                </Border>
+                <!-- Derecha: mute | loop | audio | fullscreen -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Classes="icon" x:Name="MuteBtn" ToolTip.Tip="Mute (M)">
+                        <Grid HorizontalAlignment="Center">
+                            <skp:Svg x:Name="VolIcon" Path="avares://MediaPlayer/Svgs/Volume.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                            <skp:Svg x:Name="MuteIcon" Path="avares://MediaPlayer/Svgs/VolumeMute.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5" IsVisible="False"/>
+                        </Grid>
+                    </Button>
+                    <Button Classes="icon" x:Name="LoopBtn" ToolTip.Tip="Loop (L)">
+                        <Grid HorizontalAlignment="Center">
+                            <skp:Svg x:Name="LoopIcon" Path="avares://MediaPlayer/Svgs/Loop.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>
+                            <skp:Svg x:Name="LoopOneIcon" Path="avares://MediaPlayer/Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False"/>
+                        </Grid>
+                    </Button>
+                    <Button Classes="icon" x:Name="AudioBtn" ToolTip.Tip="Pista de audio (J)">
+                        <skp:Svg Path="avares://MediaPlayer/Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
+                    </Button>
+                    <Button Classes="icon" x:Name="FullScreenBtn" ToolTip.Tip="Pantalla completa (F)">
+                        <Grid HorizontalAlignment="Center">
+                            <skp:Svg x:Name="FullScreenIcon" Path="avares://MediaPlayer/Svgs/Fullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="18"/>
+                            <skp:Svg x:Name="NoFullScreenIcon" Path="avares://MediaPlayer/Svgs/NoFullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

@@ -22,7 +22,7 @@
                 </Transitions>
             </Grid.Transitions>
 
-            <Border BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource BackgroundBrush}" BorderThickness="2"
+            <Border BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource BackgroundBrush}" BorderThickness="{StaticResource AllBorderThickness}"
                     Grid.Row="1" Grid.Column="1" CornerRadius="15" BoxShadow="0 8 32 0 #8000">
                 <v:PlaylistView CornerRadius="17" x:Name="PlaylistView"/>
             </Border>

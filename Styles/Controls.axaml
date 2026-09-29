@@ -26,7 +26,7 @@
         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="8" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlCornerRadius}" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="MinHeight" Value="0" />
@@ -48,34 +48,32 @@
         <Setter Property="FontSize" Value="20"/>
     </Style>
 
-    <Style Selector="Button:pointerover">
+    <Style Selector="Button:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{StaticResource HoverBrush}" />
         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
     </Style>
 
-    <Style Selector="Button:pressed">
+    <Style Selector="Button:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{StaticResource PressedBrush}" />
     </Style>
 
     <Style Selector="Button.icon">
         <Setter Property="Padding" Value="{StaticResource IslandComPadding}" />
-        <Setter Property="MaxWidth" Value="32" />
-        <Setter Property="MinWidth" Value="32" />
-        <Setter Property="MaxHeight" Value="32" />
-        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="CornerRadius" Value="16" />
     </Style>
 
-
     <Style Selector="Border.Island">
-        <Setter Property="Padding" Value="4" />
+        <Setter Property="Padding" Value="{StaticResource IslandComPadding}" />
         <Setter Property="Background" Value="{StaticResource IslandBrush}" />
         <Setter Property="CornerRadius" Value="{StaticResource IslandCornerRadius}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="{StaticResource AllBorderThickness}" />
         <Setter Property="BoxShadow" Value="{StaticResource ControlShadow}" />
     </Style>
 
-    <!-- Slider: accent blanco, override de los resources del theme Fluent -->
+    <!-- Slider -->
     <Style Selector="Slider">
         <Setter Property="Background" Value="{StaticResource TrackEmptyBrush}" />
         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
@@ -155,12 +153,12 @@
         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
     </Style>
 
-    <!-- ContextMenu (popup de audio tracks) -->
+    <!-- ContextMenu -->
     <Style Selector="ContextMenu">
         <Setter Property="Background" Value="{StaticResource IslandBrush}" />
         <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
-        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource AllBorderThickness}" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="ClipToBounds" Value="True" />
         <Setter Property="Padding" Value="5" />

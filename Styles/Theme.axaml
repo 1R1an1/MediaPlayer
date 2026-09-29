@@ -1,4 +1,5 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Paleta: tema negro con accent blanco -->
     <Color x:Key="BackgroundColor">#0a0a0a</Color>
@@ -19,6 +20,9 @@
     <Color x:Key="TrackEmptyColor">#3fff</Color>
     <Color x:Key="TrackEmptyDisabledColor">#2fff</Color>
 
+    <!-- Divisores (más sutiles que BorderColor) -->
+    <Color x:Key="DividerColor">#222</Color>
+
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush"         Color="{StaticResource BackgroundColor}" />
     <SolidColorBrush x:Key="ForegroundBrush"         Color="{StaticResource ForegroundColor}" />
@@ -35,7 +39,7 @@
     <SolidColorBrush x:Key="TrackEmptyBrush"         Color="{StaticResource TrackEmptyColor}" />
     <SolidColorBrush x:Key="TrackEmptyDisabledBrush" Color="{StaticResource TrackEmptyDisabledColor}" />
 
-    <!-- <SolidColorBrush x:Key="SeparatorBrush"       Color="{StaticResource SeparatorColor}" /> -->
+    <SolidColorBrush x:Key="DividerBrush"            Color="{StaticResource DividerColor}" />
 
     <!-- Tipografía -->
     <FontFamily x:Key="DefaultFontFamily">Inter, SF Pro Display, Segoe UI, Noto Sans, sans-serif</FontFamily>
@@ -46,8 +50,7 @@
     <x:Double x:Key="FontSizeMedium">16</x:Double>
 
     <!-- Otros -->
-    <CornerRadius x:Key="IslandCornerRadius">20</CornerRadius>
-    <CornerRadius x:Key="PopupCornerRadius">16</CornerRadius>
+    <CornerRadius x:Key="IslandCornerRadius">14</CornerRadius>
     <Thickness x:Key="AllBorderThickness">2</Thickness>
     <Thickness x:Key="IslandComPadding">4</Thickness>
 

@@ -28,7 +28,7 @@ public partial class PlayerView : UserControl
 
     public event Action ToggleFullScreen;
 
-    private bool IsPointerOverVolumePopup(Point pos) => VolumePopup.IsVisible ? IsPointerInside(VolumePopup, pos) : false;
+    private bool IsPointerOverVolumePopup(Point pos) => VolumePopup.Opacity == 1 ? IsPointerInside(VolumePopup, pos) : false;
 
     public PlayerView()
     {
@@ -166,7 +166,8 @@ public partial class PlayerView : UserControl
         bool overVolume = !_canHideVolume ||
             IsPointerInside(MuteBtn, pos) ||
             IsPointerOverVolumePopup(pos);
-        VolumePopup.IsVisible = overVolume;
+        VolumePopup.Opacity = overVolume ? 1 : 0;
+        VolumePopup.IsHitTestVisible = overVolume;
 
         if (_seeking) return;
         if (ControlsOverlay.Opacity == 0)
