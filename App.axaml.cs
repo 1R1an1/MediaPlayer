@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MPL-2.0
+ * Copyright (c) 2026 1R1an1 */
 using System;
 using System.Threading.Tasks;
 using Avalonia;

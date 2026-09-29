@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0
+  Copyright (c) 2026 1R1an1 -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:v="using:MediaPlayer.Views"
