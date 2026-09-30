@@ -60,7 +60,7 @@ public partial class PlayerView : UserControl
         _mpv.PositionChanged += OnPositionChanged;
         _mpv.DurationChanged += sec => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); };
         _mpv.OnVolumeChanged += SetVolumen;
-        _mpv.MuteChanged += m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; };
+        _mpv.MuteChanged += async m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; await ShowOverlay(m ? MuteIcon : VolIcon); };
         _mpv.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
         _mpv.MetadataChanged += () => Dispatcher.UIThread.Invoke(() => TitleVideo.Text = _mpv.Title);
         _playlist.LoopModeChanged += l => { Dispatcher.UIThread.Invoke(() => SetLoopModeBtn(l)); };
