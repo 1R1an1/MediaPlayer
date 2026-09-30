@@ -23,8 +23,9 @@ public partial class PlaylistView : UserControl
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (List.SelectedIndex >= 0)
-            _playlist.SetCurrent(List.SelectedIndex);
+        if (List.SelectedIndex < 0) return;
+        _playlist.SetCurrent(List.SelectedIndex);
+        List.SelectedIndex = -1;
     }
 
     private void RemoveBtn_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)

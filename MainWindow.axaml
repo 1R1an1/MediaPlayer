@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: MPL-2.0
-  Copyright (c) 2026 1R1an1 -->
+Copyright (c) 2026 1R1an1 -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:v="using:MediaPlayer.Views"
@@ -17,7 +17,7 @@
         <!-- Playlist lateral -->
         <Grid x:Name="PlaylistGrid" Background="#a000"
               VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
-              IsVisible="False" ColumnDefinitions="*,5*,*" RowDefinitions="*,5*,*">
+              Opacity="0" IsVisible="False" ColumnDefinitions="*,5*,*" RowDefinitions="*,5*,*">
             <Grid.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
