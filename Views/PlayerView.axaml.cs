@@ -22,6 +22,8 @@ public partial class PlayerView : UserControl
 {
     private MpvPlayer _mpv => App.Mpv;
     private PlaylistService _playlist => App.Playlist;
+    private Color? MutedColor = Application.Current.FindResource("MutedColor") as Color?;
+    private Color? AccentColor = Application.Current.FindResource("AccentColor") as Color?;
 
     private System.Timers.Timer _hideTimer;
     private bool _seeking;
@@ -135,29 +137,6 @@ public partial class PlayerView : UserControl
         await ShowOverlay(state ? PauseIcon : PlayIcon);
     }
 
-    private CancellationTokenSource overlayCts;
-
-    private async Task ShowOverlay(Avalonia.Svg.Svg source)
-    {
-        overlayCts?.Cancel();
-        overlayCts = new();
-        var token = overlayCts.Token;
-
-        Dispatcher.UIThread.Invoke(() =>
-        {
-            OverlayIcon.CurrentColor = source.CurrentColor;
-            OverlayIcon.Path = source.Path;
-            OverlayIcon.Opacity = 1;
-        });
-
-        try
-        {
-            await Task.Delay(500, token);
-            Dispatcher.UIThread.Invoke(() => { OverlayIcon.Opacity = 0; });
-        }
-        catch (OperationCanceledException) { }
-    }
-
     private bool IsPointerInside(Visual visual, Point rootPoint)
     {
         var point = visual.TranslatePoint(new Point(0, 0), RootGrid);
@@ -224,7 +203,7 @@ public partial class PlayerView : UserControl
 
     private async void SetLoopModeBtn(LoopMode mode)
     {
-        LoopIcon.CurrentColor = Application.Current.FindResource(mode == LoopMode.None ? "MutedColor" : "AccentColor") as Color?;
+        LoopIcon.CurrentColor = mode == LoopMode.None ? MutedColor : AccentColor;
         LoopIcon.IsVisible = mode != LoopMode.Track;
         LoopOneIcon.IsVisible = mode == LoopMode.Track;
         await ShowOverlay(mode != LoopMode.Track ? LoopIcon : LoopOneIcon);
@@ -252,6 +231,28 @@ public partial class PlayerView : UserControl
     }
 
     // ------ Public Methods ------ //
+
+    private CancellationTokenSource overlayCts;
+    public async Task ShowOverlay(Avalonia.Svg.Svg source)
+    {
+        overlayCts?.Cancel();
+        overlayCts = new();
+        var token = overlayCts.Token;
+
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            OverlayIcon.CurrentColor = source.CurrentColor;
+            OverlayIcon.Path = source.Path;
+            OverlayIcon.Opacity = 1;
+        });
+
+        try
+        {
+            await Task.Delay(500, token);
+            Dispatcher.UIThread.Invoke(() => { OverlayIcon.Opacity = 0; });
+        }
+        catch (OperationCanceledException) { }
+    }
 
     public void UpdateFullScreenIcons(bool isFullScreen)
     {

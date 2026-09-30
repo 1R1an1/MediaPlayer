@@ -34,11 +34,14 @@ public partial class MainWindow : Window
         _mpv.MPRISQuitRequested += Close;
         _mpv.MPRISRaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
         _mpv.MPRISVolumeChanged += _mpv.SetVolume01;
+        _mpv.MPRISShuffleChanged += s => PlaylistView.ToggleShuffle(s);
 
         // --- PLAYLIST EVENTS --- //
+        _playlist.ShuffleChanged += _ => UpdateMprisState();
         _playlist.LoopModeChanged += _ => UpdateMprisState();
         _playlist.CurrentChanged += _ => UpdateMprisState();
         PlaylistView.CloseRequested += async () => await HidePlaylist();
+        PlaylistView.ShowOverlay += PlayerView.ShowOverlay;
         PlayerView.ToggleFullScreen += ToggleFullscreen;
 
         // --- KEYBINDINGS --- //
@@ -49,6 +52,7 @@ public partial class MainWindow : Window
         _keys.Next = PlayerView.Next;
         _keys.Prev = PlayerView.Preview;
         _keys.CycleLoopMode = _playlist.CycleLoopMode;
+        _keys.ToggleShuffle += () => PlaylistView.ToggleShuffle();
         _keys.ToggleFullscreen = ToggleFullscreen;
         _keys.ExitFullscreen = () => { if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal; };
         _keys.NextAudioTrack = () =>

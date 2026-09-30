@@ -85,6 +85,7 @@ sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr
 | Volumen -5%              | `↓`, `-`, `9`      |
 | Mute                     | `M`                |
 | Cambiar modo loop        | `L`                |
+| Alternar modo aleatorio  | `S`                |
 | Siguiente pista de audio | `J`                |
 | Pantalla completa        | `F`                |
 | Salir de fullscreen      | `Esc`              |

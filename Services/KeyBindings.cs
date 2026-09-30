@@ -26,6 +26,7 @@ public class KeyBindings
     public Action Prev;
     public Action CycleLoopMode;
     public Action ToggleFullscreen;
+    public Action ToggleShuffle;
     public Action ExitFullscreen;
     public Action NextAudioTrack;
     public Action TogglePlaylist;
@@ -53,6 +54,7 @@ public class KeyBindings
         Bind(Key.D9, KeyModifiers.None, () => VolumeDelta?.Invoke(-0.05));
         Bind(Key.M, KeyModifiers.None, () => ToggleMute?.Invoke());
 
+        Bind(Key.S, KeyModifiers.None, () => ToggleShuffle?.Invoke());
         Bind(Key.L, KeyModifiers.None, () => CycleLoopMode?.Invoke());
         Bind(Key.J, KeyModifiers.None, () => NextAudioTrack?.Invoke());
 

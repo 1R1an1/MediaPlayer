@@ -24,6 +24,7 @@ public class PlaylistService
     private readonly Random _rng = new();
 
     public event Action<LoopMode> LoopModeChanged;
+    public event Action<bool> ShuffleChanged;
     public event Action<int> CurrentChanged;
 
     public ReadOnlyObservableCollection<PlaylistItem> Items => new ReadOnlyObservableCollection<PlaylistItem>(_items);
@@ -45,11 +46,11 @@ public class PlaylistService
     public LoopMode LoopMode
     {
         get => _loopMode;
-        set
+        private set
         {
             if (_loopMode == value) return;
             _loopMode = value;
-            LoopModeChanged?.Invoke(_loopMode);
+            LoopModeChanged?.Invoke(value);
         }
     }
 
@@ -60,6 +61,8 @@ public class PlaylistService
         {
             if (_shuffle == value) return;
             _shuffle = value;
+            _mpv.Shuffle = value;
+            ShuffleChanged?.Invoke(value);
             ApplyShuffle();
         }
     }
@@ -67,7 +70,6 @@ public class PlaylistService
     public PlaylistService()
     {
         _mpv.MPRISLoopChanged += SetLoopMode;
-        _mpv.MPRISShuffleChanged += s => Shuffle = s;
         _mpv.EndReached += () =>
         {
             if (LoopMode == LoopMode.Track)
