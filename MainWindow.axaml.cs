@@ -129,7 +129,7 @@ public partial class MainWindow : Window
         var path = folders[0].Path.LocalPath;
         if (!Directory.Exists(path)) return;
 
-        var files = LinuxKRL.GetReadableFiles(path).Where(IsMediaFile);
+        var files = LinuxKRL.GetReadableFiles(path).Where(IsMediaFile).OrderBy(f => f);
 
         if (files.Count() == 0) return;
         await _playlist.AddNew(files);
