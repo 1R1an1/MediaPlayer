@@ -150,8 +150,11 @@ public class MpvGlControl : OpenGlControlBase
                 h = _sharedH;
             }
 
+            // Forzar re-render si el tamaño cambió (mpv no manda update cuando está pausado)
+            bool forceRender = w != lastW || h != lastH;
+
             // Recrear FBOs del render thread si cambió el tamaño
-            if (w != lastW || h != lastH)
+            if (forceRender)
             {
                 if (_renderFboA[0] != 0) glDeleteFramebuffers(1, _renderFboA);
                 if (_renderFboB[0] != 0) glDeleteFramebuffers(1, _renderFboB);
@@ -170,7 +173,7 @@ public class MpvGlControl : OpenGlControlBase
                 glFlush();
             }
 
-            ulong flags = mpv_render_context_update(_renderCtx);
+            ulong flags = forceRender ? MPV_RENDER_UPDATE_FRAME : mpv_render_context_update(_renderCtx);
             if ((flags & MPV_RENDER_UPDATE_FRAME) == 0) continue;
 
             int writeIdx = _writeIdx;
