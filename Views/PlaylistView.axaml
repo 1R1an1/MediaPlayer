@@ -5,6 +5,7 @@ Copyright (c) 2026 1R1an1 -->
              xmlns:m="using:MediaPlayer.Models"
              xmlns:l="using:MediaPlayer"
              xmlns:skp="using:Avalonia.Svg"
+             xmlns:ia="using:Xaml.Behaviors.Interactions.Animated"
              x:Class="MediaPlayer.Views.PlaylistView"
              Background="{StaticResource BackgroundBrush}">
 
@@ -23,6 +24,15 @@ Copyright (c) 2026 1R1an1 -->
             <ListBox x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
                      Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
                 <ListBox.Styles>
+                    <Style Selector="ScrollViewer">
+                        <Setter Property="(Interaction.Behaviors)">
+                            <BehaviorCollectionTemplate>
+                                <BehaviorCollection>
+                                    <ia:VerticalScrollViewerAnimatedBehavior/>
+                                </BehaviorCollection>
+                            </BehaviorCollectionTemplate>
+                        </Setter>
+                    </Style>
                     <Style Selector="ListBoxItem">
                         <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="Template">
@@ -56,6 +66,11 @@ Copyright (c) 2026 1R1an1 -->
                         <Setter Property="Background" Value="#4f55"/>
                     </Style>
                 </ListBox.Styles>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="m:PlaylistItem">
                         <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
