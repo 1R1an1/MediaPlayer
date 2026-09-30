@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: MPL-2.0
-  Copyright (c) 2026 1R1an1 -->
+Copyright (c) 2026 1R1an1 -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:m="using:MediaPlayer.Models"
@@ -10,67 +10,82 @@
     <Grid Margin="2,10,2,2" RowDefinitions="*,Auto">
 
         <!-- Lista con ItemTemplate -->
-        <ListBox Grid.Row="0" x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
-                 Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
+        <Border Grid.Row="0" Margin="0" Padding="0">
+            <Border.OpacityMask>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Color="Transparent" Offset="0"/>
+                    <GradientStop Color="Black" Offset="0.03"/>
+                    <GradientStop Color="Black" Offset="0.97"/>
+                    <GradientStop Color="Transparent" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.OpacityMask>
+            <ListBox x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
+                     Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <ControlTemplate>
+                                <ContentPresenter CornerRadius="5" Margin="4,2" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                            </ControlTemplate>
+                        </Setter>
+                    </Style>
+                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                    <!-- Botón oculto por defecto -->
+                    <Style Selector="ListBoxItem Button /template/ ContentPresenter">
+                        <Setter Property="IsVisible" Value="False"/>
+                    </Style>
 
-            <ListBox.Styles>
-                <Style Selector="ListBoxItem">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Template">
-                        <ControlTemplate>
-                            <ContentPresenter CornerRadius="5" Margin="4,2" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
-                        </ControlTemplate>
-                    </Setter>
-                </Style>
-                <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                    <Setter Property="Background" Value="Transparent"/>
-                </Style>
-                <!-- Botón oculto por defecto -->
-                <Style Selector="ListBoxItem Button /template/ ContentPresenter">
-                    <Setter Property="IsVisible" Value="False"/>
-                </Style>
+                    <!-- Botón visible al pasar el mouse -->
+                    <Style Selector="ListBoxItem:pointerover Button /template/ ContentPresenter">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                        <Setter Property="IsVisible" Value="True"/>
+                    </Style>
+                    <!-- Hover del botón: se enciende -->
+                    <Style Selector="ListBoxItem:pointerover Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#2f55"/>
+                        <Setter Property="Foreground" Value="#faa"/>
+                    </Style>
 
-                <!-- Botón visible al pasar el mouse -->
-                <Style Selector="ListBoxItem:pointerover Button /template/ ContentPresenter">
-                    <Setter Property="Background" Value="Transparent" />
-                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
-                    <Setter Property="IsVisible" Value="True"/>
-                </Style>
-                <!-- Hover del botón: se enciende -->
-                <Style Selector="ListBoxItem:pointerover Button:pointerover /template/ ContentPresenter">
-                    <Setter Property="Background" Value="#2f55"/>
-                    <Setter Property="Foreground" Value="#faa"/>
-                </Style>
+                    <!-- Pressed: más fuerte -->
+                    <Style Selector="ListBoxItem:pointerover Button:pressed /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#4f55"/>
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="m:PlaylistItem">
+                        <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
+                            <Grid ColumnDefinitions="auto,*">
+                                <StackPanel Orientation="Horizontal" Grid.Column="0" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
+                                    <!-- Cover -->
+                                    <Border Height="45" ClipToBounds="True" CornerRadius="5">
+                                        <Grid>
+                                            <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
+                                            <Border Padding="5,2" Background="#a000" CornerRadius="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,2,2">
+                                                <TextBlock Text="{Binding DurationText}" FontSize="10" Foreground="#ddd"
+                                                           VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
 
-                <!-- Pressed: más fuerte -->
-                <Style Selector="ListBoxItem:pointerover Button:pressed /template/ ContentPresenter">
-                    <Setter Property="Background" Value="#4f55"/>
-                </Style>
-            </ListBox.Styles>
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="m:PlaylistItem">
-                    <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
-                        <Grid ColumnDefinitions="auto,*">
-                            <StackPanel Orientation="Horizontal" Grid.Column="0" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
-                                <!-- Cover -->
-                                <Border Width="71" Height="40" ClipToBounds="True" CornerRadius="5">
-                                    <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
-                                </Border>
-
-                                <!-- Textos -->
-                                <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding DurationText}" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                                    <!-- Textos -->
+                                    <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
-                            <Button Classes="texticon bold" Grid.Column="1" Margin="0,0,10,0"
-                                    x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click"
-                                    Content="✕" FontSize="16" HorizontalAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                                <Button Classes="texticon bold" Grid.Column="1" Margin="0,0,10,0"
+                                        x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click"
+                                        Content="✕" FontSize="16" HorizontalAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
 
         <!-- Footer: título + 2 icons alineados a la derecha -->
         <Grid Grid.Row="1" ColumnDefinitions="*,5,Auto" Margin="14,3,8,2">

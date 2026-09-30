@@ -145,7 +145,6 @@ public class PlaylistService
     public int PeekNext()
     {
         if (_items.Count == 0) return -1;
-        if (_loopMode == LoopMode.Track && CurrentIndex >= 0) return CurrentIndex;
         int next = CurrentIndex + 1;
         if (next < _items.Count) return next;
         return _loopMode == LoopMode.Playlist ? 0 : -1;
@@ -154,8 +153,6 @@ public class PlaylistService
     public int PeekPrev()
     {
         if (_items.Count == 0) return -1;
-        if (_loopMode == LoopMode.Track && CurrentIndex >= 0) return CurrentIndex;
-
         int prev = CurrentIndex - 1;
         if (prev >= 0) return prev;
         return _loopMode == LoopMode.Playlist ? _items.Count - 1 : -1;
@@ -244,6 +241,23 @@ public class PlaylistService
 
                 if (double.TryParse(durStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double dur))
                     item.Duration = TimeSpan.FromSeconds(dur);
+
+                // Artista con ffprobe
+                var artistProbe = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "ffprobe",
+                        Arguments = $"-v quiet -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 \"{item.Path}\"",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    }
+                };
+                artistProbe.Start();
+                string artistStr = (await artistProbe.StandardOutput.ReadToEndAsync()).Trim();
+                await artistProbe.WaitForExitAsync();
+                item.Artist = artistStr;
 
                 // Cover con ffmpeg
                 string tempDir = Directory.CreateTempSubdirectory("mpv_pl_").FullName;

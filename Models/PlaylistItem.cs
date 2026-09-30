@@ -33,6 +33,13 @@ public class PlaylistItem : INotifyPropertyChanged
         set { _isCurrent = value; OnPropertyChanged(); }
     }
 
+    private string _artist;
+    public string Artist
+    {
+        get => _artist;
+        set { _artist = value; OnPropertyChanged(); }
+    }
+
     private byte[] _coverBytes;
     public byte[] CoverBytes
     {
@@ -41,7 +48,6 @@ public class PlaylistItem : INotifyPropertyChanged
     }
 
     public Bitmap CoverMap => new Bitmap(new MemoryStream(_coverBytes));
-
     public string DurationText => (Duration == default) ? "--:--" : FormatTime(Duration.TotalSeconds);
 
     public PlaylistItem(string path, string title = null, TimeSpan duration = default)
