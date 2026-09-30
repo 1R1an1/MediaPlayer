@@ -58,8 +58,8 @@ Copyright (c) 2026 1R1an1 -->
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="m:PlaylistItem">
                         <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
-                            <Grid ColumnDefinitions="auto,*">
-                                <StackPanel Orientation="Horizontal" Grid.Column="0" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
                                     <!-- Cover -->
                                     <Border Height="45" ClipToBounds="True" CornerRadius="5">
                                         <Grid>
@@ -77,7 +77,7 @@ Copyright (c) 2026 1R1an1 -->
                                         <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
                                     </StackPanel>
                                 </StackPanel>
-                                <Button Classes="texticon bold" Grid.Column="1" Margin="0,0,10,0"
+                                <Button Classes="texticon bold" Margin="0,0,10,0"
                                         x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click"
                                         Content="✕" FontSize="16" HorizontalAlignment="Right"/>
                             </Grid>
