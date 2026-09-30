@@ -86,17 +86,7 @@ Copyright (c) 2026 1R1an1 -->
                 </TextBlock>
             </Grid>
             <Grid ColumnDefinitions="3*,*,3*" RowDefinitions="3*,*,3*">
-                <skp:Svg x:Name="OverlayPlay" Path="avares://MediaPlayer/Svgs/Play.svg" Margin="0,0,-5,0" CurrentColor="{StaticResource AccentColor}" Grid.Column="1" Grid.Row="1" Opacity="0">
-                    <skp:Svg.Effect>
-                        <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
-                    </skp:Svg.Effect>
-                    <skp:Svg.Transitions>
-                        <Transitions>
-                            <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
-                        </Transitions>
-                    </skp:Svg.Transitions>
-                </skp:Svg>
-                <skp:Svg x:Name="OverlayPause" Path="avares://MediaPlayer/Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Grid.Column="1" Grid.Row="1" Opacity="0">
+                <skp:Svg x:Name="OverlayIcon" Margin="0" CurrentColor="{StaticResource AccentColor}" Grid.Column="1" Grid.Row="1" Opacity="0">
                     <skp:Svg.Effect>
                         <DropShadowEffect OffsetX="4" OffsetY="4" BlurRadius="16" Opacity="1" Color="#a000" />
                     </skp:Svg.Effect>

@@ -125,32 +125,35 @@ public partial class PlayerView : UserControl
         catch (OperationCanceledException) { }
     }
 
-    private CancellationTokenSource playCts;
     private async void SetPlayPause(bool state)
     {
-        playCts?.Cancel();
-        playCts = new();
-        var token = playCts.Token;
-
         Dispatcher.UIThread.Invoke(() =>
         {
             PauseIcon.IsVisible = state;
             PlayIcon.IsVisible = !state;
-
-            OverlayPause.Opacity = state ? 1 : 0;
-            OverlayPlay.Opacity = !state ? 1 : 0;
         });
+        await ShowOverlay(state ? PauseIcon : PlayIcon);
+    }
+
+    private CancellationTokenSource overlayCts;
+
+    private async Task ShowOverlay(Avalonia.Svg.Svg source)
+    {
+        overlayCts?.Cancel();
+        overlayCts = new();
+        var token = overlayCts.Token;
+
+        Dispatcher.UIThread.Invoke(() =>
+        {
+            OverlayIcon.CurrentColor = source.CurrentColor;
+            OverlayIcon.Path = source.Path;
+            OverlayIcon.Opacity = 1;
+        });
+
         try
         {
             await Task.Delay(500, token);
-            Dispatcher.UIThread.Invoke(() =>
-            {
-                if (state)
-                    OverlayPause.Opacity = 0;
-                else
-                    OverlayPlay.Opacity = 0;
-            });
-
+            Dispatcher.UIThread.Invoke(() => { OverlayIcon.Opacity = 0; });
         }
         catch (OperationCanceledException) { }
     }
@@ -219,11 +222,12 @@ public partial class PlayerView : UserControl
         CurrentTimeText.Text = PlaylistItem.FormatTime(sec);
     }
 
-    private void SetLoopModeBtn(LoopMode mode)
+    private async void SetLoopModeBtn(LoopMode mode)
     {
         LoopIcon.CurrentColor = Application.Current.FindResource(mode == LoopMode.None ? "MutedColor" : "AccentColor") as Color?;
         LoopIcon.IsVisible = mode != LoopMode.Track;
         LoopOneIcon.IsVisible = mode == LoopMode.Track;
+        await ShowOverlay(mode != LoopMode.Track ? LoopIcon : LoopOneIcon);
     }
 
     private void ShowAudioMenu()
