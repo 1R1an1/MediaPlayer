@@ -146,11 +146,8 @@ public class MpvPlayer : MprisSource
                 LoadTrackList();
                 DurationSec = GetDoubleProperty("duration");
                 PositionSec = GetDoubleProperty("time-pos");
-                Dispatcher.UIThread.Invoke(() =>
-                {
-                    DurationChanged?.Invoke(DurationSec);
-                    PositionChanged?.Invoke(PositionSec);
-                });
+                DurationChanged?.Invoke(DurationSec);
+                PositionChanged?.Invoke(PositionSec);
                 break;
 
             case LibMpv.MPV_EVENT_END_FILE:
@@ -180,7 +177,7 @@ public class MpvPlayer : MprisSource
                 {
                     var old = PositionSec;
                     PositionSec = Marshal.PtrToStructure<double>(prop.data);
-                    Dispatcher.UIThread.Invoke(() => PositionChanged?.Invoke(PositionSec));
+                    PositionChanged?.Invoke(PositionSec);
                     if (Math.Abs(old - PositionSec) > 0.2)
                         MprisService.Update();
                 }
@@ -190,7 +187,7 @@ public class MpvPlayer : MprisSource
                 if (prop.format == LibMpv.MPV_FORMAT_DOUBLE)
                 {
                     DurationSec = Marshal.PtrToStructure<double>(prop.data);
-                    Dispatcher.UIThread.Invoke(() => DurationChanged?.Invoke(DurationSec));
+                    DurationChanged?.Invoke(DurationSec);
                 }
                 break;
 
@@ -219,14 +216,14 @@ public class MpvPlayer : MprisSource
                 {
                     int val = Marshal.PtrToStructure<int>(prop.data);
                     IsMuted = val != 0;
-                    Dispatcher.UIThread.Invoke(() => MuteChanged?.Invoke(IsMuted));
+                    MuteChanged?.Invoke(IsMuted);
                 }
                 break;
 
             case "path":
                 CurrentPath = ReadPropString(prop);
                 await LoadCover();
-                Dispatcher.UIThread.Invoke(() => PathChanged?.Invoke(CurrentPath));
+                PathChanged?.Invoke(CurrentPath);
                 break;
 
             case "media-title":

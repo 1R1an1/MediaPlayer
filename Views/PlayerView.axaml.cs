@@ -58,12 +58,12 @@ public partial class PlayerView : UserControl
         // --- MPV-OTHERS --- //
         _mpv.IsPlayingChanged += SetPlayPause;
         _mpv.PositionChanged += OnPositionChanged;
-        _mpv.DurationChanged += sec => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); };
+        _mpv.DurationChanged += sec => Dispatcher.UIThread.Invoke(() => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); });
         _mpv.OnVolumeChanged += SetVolumen;
-        _mpv.MuteChanged += async m => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; await ShowOverlay(m ? MuteIcon : VolIcon); };
-        _mpv.PathChanged += path => VideoHost.IsVisible = !string.IsNullOrEmpty(path);
+        _mpv.MuteChanged += async m => { Dispatcher.UIThread.Invoke(() => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; }); await ShowOverlay(m ? MuteIcon : VolIcon); };
+        _mpv.PathChanged += path => Dispatcher.UIThread.Invoke(() => VideoHost.IsVisible = !string.IsNullOrEmpty(path));
         _mpv.MetadataChanged += () => Dispatcher.UIThread.Invoke(() => TitleVideo.Text = _mpv.Title);
-        _playlist.LoopModeChanged += l => { Dispatcher.UIThread.Invoke(() => SetLoopModeBtn(l)); };
+        _playlist.LoopModeChanged += l => Dispatcher.UIThread.Invoke(() => SetLoopModeBtn(l));
 
         // --- TUNNEL BINDINGS --- //
         SeekBar.AddHandler(PointerPressedEvent, (_, _) => { if (_seeking) return; _seeking = true; _canHide = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -196,9 +196,12 @@ public partial class PlayerView : UserControl
     private void OnPositionChanged(double sec)
     {
         if (_seeking) return;
-        if (_mpv.DurationSec > 0)
-            SeekBar.Value = sec;
-        CurrentTimeText.Text = PlaylistItem.FormatTime(sec);
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_mpv.DurationSec > 0)
+                SeekBar.Value = sec;
+            CurrentTimeText.Text = PlaylistItem.FormatTime(sec);
+        });
     }
 
     private async void SetLoopModeBtn(LoopMode mode)
