@@ -62,9 +62,9 @@ Copyright (c) 2026 1R1an1 -->
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
                                     <!-- Cover -->
-                                    <Border Height="45" ClipToBounds="True" CornerRadius="5">
+                                    <Border Height="45" MinWidth="80" ClipToBounds="True" Background="#222" CornerRadius="5">
                                         <Grid>
-                                            <Image Stretch="UniformToFill" Source="{Binding CoverMap}" />
+                                            <Image Stretch="Uniform" Height="45" HorizontalAlignment="Center" Source="{Binding CoverMap}" />
                                             <Border Padding="5,2" Background="#a000" CornerRadius="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,2,2">
                                                 <TextBlock Text="{Binding DurationText}" FontSize="10" Foreground="#ddd"
                                                            VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" />
