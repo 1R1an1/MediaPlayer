@@ -221,7 +221,7 @@ public class PlaylistService
     public async Task Probe(int start = 0, int end = -1)
     {
         var items = _originalItems[start..(end == -1 ? _originalItems.Count : end)];
-        await Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount / 2 }, async (item, _) =>
+        await Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount + 2 }, async (item, _) =>
         {
             try
             {
