@@ -68,6 +68,23 @@ sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr
 
 ---
 
+## Descarga de videos y música
+
+MediaPlayer usa las miniaturas embebidas en los archivos para mostrar la portada en la playlist y en MPRIS. Para audio (`.mp3` y `.flac`) la miniatura funciona de forma universal, pero para video (`.mkv`) requiere un formato específico. El script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) usa `yt-dlp` con las opciones correctas para que las miniaturas y los metadatos queden embebidos con el formato compatible de la app.
+
+Uso del script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh)
+
+```bash
+./yt.sh video <URL>              # Descarga video en .mkv con miniatura y metadatos embebidos
+./yt.sh musica <mp3|flac> <URL>  # Descarga solo audio con miniatura y metadatos embebidos
+./yt.sh musicaR <mp3|flac> <URL> # Igual que musica, pero recorta la miniatura a cuadrado
+./yt.sh recortar                 # Recorta a cuadrado las miniaturas de todos los .flac y .mp3 de la carpeta actual
+```
+
+Requiere tener `yt-dlp` y `ffmpeg` instalados.
+
+---
+
 ## Atajos de teclado
 
 | Acción                   | Tecla              |
