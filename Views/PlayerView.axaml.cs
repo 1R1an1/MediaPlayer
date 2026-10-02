@@ -37,6 +37,7 @@ public partial class PlayerView : UserControl
     public PlayerView()
     {
         InitializeComponent();
+        VideoHost.SetMpvHandle(_mpv.MpvHandle);
 
         // --- UI --- //
         PlayPauseBtn.Click += (_, _) => PlayPause();
@@ -82,7 +83,6 @@ public partial class PlayerView : UserControl
 
         ShowControls();
 
-        VideoHost.SetMpvHandle(_mpv.MpvHandle);
         VolumeSlider.Value = _mpv.Volume;
         _mpv.Pause();
     }

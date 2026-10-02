@@ -95,7 +95,7 @@ public partial class MainWindow : Window
         MprisService.Update();
     }
 
-    private string[] filesFilter = [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
+    private static string[] filesFilter = [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
     private async Task OpenFilePickerAsync()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -113,7 +113,7 @@ public partial class MainWindow : Window
         var filePath = files.Select(f => f.Path.LocalPath).Where(IsMediaFile);
         if (files == null || filePath.Count() == 0) return;
 
-        await _playlist.Add(filePath);
+        _playlist.Add(filePath);
     }
 
     private async Task OpenFolderPickerAsync()
@@ -132,7 +132,7 @@ public partial class MainWindow : Window
         var files = LinuxKRL.GetReadableFiles(path, IsMediaFile).OrderBy(f => f);
 
         if (files.Count() == 0) return;
-        await _playlist.AddNew(files);
+        _playlist.AddNew(files);
     }
 
     private void ToggleFullscreen()
@@ -165,7 +165,7 @@ public partial class MainWindow : Window
         e.DragEffects = (files != null && files.Length > 0) ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
-    private async Task OnDrop(object sender, DragEventArgs e)
+    private void OnDrop(object sender, DragEventArgs e)
     {
         var files = e.DataTransfer?.TryGetFiles();
         if (files == null || files.Length == 0) return;
@@ -176,10 +176,10 @@ public partial class MainWindow : Window
             .ToList();
         if (paths.Count == 0) return;
 
-        await _playlist.Add(paths);
+        _playlist.Add(paths);
     }
 
-    private bool IsMediaFile(string path)
+    public static bool IsMediaFile(string path)
     {
         string ext = Path.GetExtension(path).ToLowerInvariant();
         return Array.IndexOf(filesFilter, ext) >= 0;

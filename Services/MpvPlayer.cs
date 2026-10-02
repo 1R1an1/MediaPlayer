@@ -55,7 +55,38 @@ public class MpvPlayer : MprisSource
     public event Action<bool> MPRISShuffleChanged;
     public event Action<double> MPRISVolumeChanged;
 
-    public void InitForRenderApi()
+    public MpvPlayer(out bool success)
+    {
+        try
+        {
+            MprisService.StartAsync(this, new MprisCapabilities
+            {
+                CanQuit = true,
+                CanRaise = true,
+                CanPlay = false,
+                CanPause = false,
+                CanSeek = false,
+                CanGoNext = false,
+                CanGoPrevious = false,
+                CanStop = true,
+                SupportsLoop = true,
+                SupportsShuffle = true,
+                SupportsVolume = true,
+                SupportedUriSchemes = ["file", "http", "https"],
+                SupportedMimeTypes = ["video/mp4", "video/x-matroska", "video/webm"]
+            }, new MprisOptions
+            {
+                Name = "mediaplayer",
+                DisplayName = "Media Player"
+            }).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            MprisService.SeekThresholdUs = 200_000;
+            success = true;
+        }
+        catch (Exception e) { Console.WriteLine($"Error: \"{e.Message}\" StackTrace: \n{e.StackTrace}"); success = true; }
+    }
+
+    public void Init()
     {
         if (_handle != IntPtr.Zero)
             throw new InvalidOperationException("MpvPlayer ya está inicializado.");
@@ -155,7 +186,7 @@ public class MpvPlayer : MprisSource
                 if (ef.reason == LibMpv.MPV_END_FILE_REASON_ERROR)
                 {
                     string msg = GetStringProperty("error-string") ?? "unknown error";
-                    ErrorOccurred?.Invoke(msg);
+                    ErrorOccurred?.Invoke("HandleEvent " + msg);
                 }
                 break;
 

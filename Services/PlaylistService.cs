@@ -6,8 +6,10 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using MediaPlayer.Models;
+using SharpUtils.Linux;
 
 namespace MediaPlayer.Services;
 
@@ -67,7 +69,7 @@ public class PlaylistService
         }
     }
 
-    public PlaylistService()
+    public PlaylistService(string[] args)
     {
         _mpv.MPRISLoopChanged += SetLoopMode;
         _mpv.EndReached += () =>
@@ -79,10 +81,29 @@ public class PlaylistService
             }
             else Advance();
         };
+        if (args == null || args.Length < 1) return;
+        foreach (var p in args.Where(f => File.Exists(f) || Directory.Exists(f)).Select(Path.GetFullPath).OrderBy(f => f))
+        {
+            if (Directory.Exists(p))
+            {
+                foreach (var f in LinuxKRL.GetReadableFiles(p, MainWindow.IsMediaFile).OrderBy(f => f))
+                {
+                    var file = new PlaylistItem(f);
+                    _originalItems.Add(file);
+                    _items.Add(file);
+                }
+                continue;
+            }
+            var item = new PlaylistItem(p);
+            _originalItems.Add(item);
+            _items.Add(item);
+        }
+        Probe();
     }
 
-    public async Task Add(params IEnumerable<string> paths)
+    public void Add(params IEnumerable<string> paths)
     {
+        if (paths == null || paths.Count() < 1) return;
         bool firstLoad = _items.Count == 0;
         var old = _originalItems.Count;
         foreach (var p in paths)
@@ -95,15 +116,15 @@ public class PlaylistService
         if (_shuffle)
             ApplyShuffle();
 
-        await Probe(old, -1);
+        Probe(old, -1);
     }
     public void Move(int oldIndex, int newIndex) => _items.Move(oldIndex, newIndex);
 
 
-    public async Task AddNew(IEnumerable<string> paths)
+    public void AddNew(IEnumerable<string> paths)
     {
         Clear();
-        await Add(paths);
+        Add(paths);
         SetCurrent(CurrentIndex);
     }
 
@@ -219,10 +240,10 @@ public class PlaylistService
     /// Extrae duración y cover de cada archivo en un thread aparte.
     /// Dispara Changed después de cada item para que la UI se actualice.
     /// </summary>
-    public async Task Probe(int start = 0, int end = -1)
+    public void Probe(int start = 0, int end = -1)
     {
         var items = _originalItems[start..(end == -1 ? _originalItems.Count : end)];
-        await Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount + 2 }, async (item, _) =>
+        _ = Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount + 2 }, async (item, _) =>
         {
             try
             {
