@@ -97,6 +97,7 @@ public class PlaylistService
 
         await Probe(old, -1);
     }
+    public void Move(int oldIndex, int newIndex) => _items.Move(oldIndex, newIndex);
 
 
     public async Task AddNew(IEnumerable<string> paths)

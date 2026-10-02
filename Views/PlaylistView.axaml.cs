@@ -2,12 +2,14 @@
  * Copyright (c) 2026 1R1an1 */
 using System;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using MediaPlayer.Models;
 using MediaPlayer.Services;
+using Sortable.Avalonia;
 
 namespace MediaPlayer.Views;
 
@@ -26,6 +28,7 @@ public partial class PlaylistView : UserControl
         CloseBtn.Click += (_, _) => CloseRequested?.Invoke();
         ClearBtn.Click += (_, _) => _playlist.Clear();
         ShuffleBtn.Click += (_, _) => ToggleShuffle();
+        Sortable.Avalonia.Sortable.SetUpdateCommand(List, new RelayCommand<SortableUpdateEventArgs>((e) => { _playlist.Move(e.OldIndex, e.NewIndex); }));
     }
 
     public async void ToggleShuffle(bool? enable = null)
@@ -52,4 +55,16 @@ public partial class PlaylistView : UserControl
         var index = _playlist.Items.IndexOf((sender as Button).Tag as PlaylistItem);
         _playlist.RemoveAt(index);
     }
+}
+
+public class RelayCommand<T> : ICommand
+{
+    private readonly Action<T> _execute;
+
+    public RelayCommand(Action<T> execute) => _execute = execute;
+    public bool CanExecute(object parameter) => true;
+    public void Execute(object parameter) => _execute((T)parameter);
+#pragma warning disable CS0067
+    public event EventHandler CanExecuteChanged;
+#pragma warning restore CS0067
 }

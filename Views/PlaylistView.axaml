@@ -6,6 +6,7 @@ Copyright (c) 2026 1R1an1 -->
              xmlns:l="using:MediaPlayer"
              xmlns:skp="using:Avalonia.Svg"
              xmlns:ia="using:Xaml.Behaviors.Interactions.Animated"
+             xmlns:sortable="using:Sortable.Avalonia"
              x:Class="MediaPlayer.Views.PlaylistView"
              Background="{StaticResource BackgroundBrush}">
 
@@ -22,7 +23,8 @@ Copyright (c) 2026 1R1an1 -->
                 </LinearGradientBrush>
             </Border.OpacityMask>
             <ListBox x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
-                     Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}">
+                     Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}"
+                     sortable:Sortable.Sortable="True">
                 <ListBox.Styles>
                     <Style Selector="ScrollViewer">
                         <Setter Property="(Interaction.Behaviors)">
@@ -44,16 +46,29 @@ Copyright (c) 2026 1R1an1 -->
                     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
                         <Setter Property="Background" Value="Transparent"/>
                     </Style>
-                    <!-- Botón oculto por defecto -->
-                    <Style Selector="ListBoxItem Button /template/ ContentPresenter">
-                        <Setter Property="IsVisible" Value="False"/>
+                    <Style Selector="ListBoxItem:pointerover Grid">
+                        <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+                    </Style>
+                    <Style Selector="ListBoxItem Grid">
+                        <Setter Property="Background" Value="Transparent"/>
                     </Style>
 
+                    <!-- Botón oculto por defecto -->
+                    <Style Selector="ListBoxItem Button /template/ ContentPresenter, ListBoxItem Label">
+                        <Setter Property="IsVisible" Value="False"/>
+                    </Style>
                     <!-- Botón visible al pasar el mouse -->
                     <Style Selector="ListBoxItem:pointerover Button /template/ ContentPresenter">
                         <Setter Property="Background" Value="Transparent" />
                         <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
                         <Setter Property="IsVisible" Value="True"/>
+                    </Style>
+                    <Style Selector="ListBoxItem:pointerover Label">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="IsVisible" Value="True"/>
+                    </Style>
+                    <Style Selector="ListBoxItem:pointerover Label:pointerover">
+                        <Setter Property="Background" Value="{StaticResource HoverBrush}" />
                     </Style>
                     <!-- Hover del botón: se enciende -->
                     <Style Selector="ListBoxItem:pointerover Button:pointerover /template/ ContentPresenter">
@@ -73,7 +88,7 @@ Copyright (c) 2026 1R1an1 -->
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="m:PlaylistItem">
-                        <Border Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
+                        <Border ClipToBounds="True" sortable:Sortable.IsSortable="True" Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
                                     <!-- Cover -->
@@ -93,9 +108,14 @@ Copyright (c) 2026 1R1an1 -->
                                         <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
                                     </StackPanel>
                                 </StackPanel>
-                                <Button Classes="texticon bold" Margin="0,0,10,0"
-                                        x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click"
-                                        Content="✕" FontSize="16" HorizontalAlignment="Right"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Classes="texticon bold" Content="✕" FontSize="16"
+                                            x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click" />
+
+                                    <Label CornerRadius="5" Cursor="SizeAll" sortable:Sortable.IsDragHandle="True" Content="⋮" Padding="0"
+                                           Foreground="{StaticResource MutedBrush}" FontSize="16" Margin="5,5,10,5" Width="20"
+                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
