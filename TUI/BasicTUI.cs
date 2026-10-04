@@ -44,17 +44,23 @@ public class BasicTUI
 
         using var canvas = new TermCanvas(5, true, false, 250, (_, _, _) => RequestRender());
 
-        var input = new InputRouter().Bind("", "", _mpv.PlayPause, ConsoleKey.Spacebar, ConsoleKey.K)
+        var input = new InputRouter()
+        .Bind("", "", () =>
+        {
+            if (_mpv.CurrentPath == null) return;
+            else if (_mpv.EofReached) { _mpv.SeekAbsolute(0); _mpv.Play(); }
+            else _mpv.PlayPause();
+        }, ConsoleKey.Spacebar, ConsoleKey.K)
         .Bind("", "", () => _mpv.SeekRelative(-5), ConsoleKey.LeftArrow)
         .Bind("", "", () => _mpv.SeekRelative(5), ConsoleKey.RightArrow)
-        .Bind("", "", () => _mpv.SetVolume01(vol + 0.05), ConsoleKey.UpArrow)
-        .Bind("", "", () => _mpv.SetVolume01(vol - 0.05), ConsoleKey.DownArrow)
-        .Bind("", "", _playlist.Advance, ConsoleKey.N)
-        .Bind("", "", () => { if (_mpv.PositionSec > 5) { _mpv.SeekAbsolute(0); return; } _playlist.GoPrev(); }, ConsoleKey.B)
-        .Bind("", "", _playlist.CycleLoopMode, ConsoleKey.L)
+        .Bind("", "", () => _mpv.SetVolume01(vol + 0.05), ConsoleKey.UpArrow, ConsoleKey.Add, ConsoleKey.D0)
+        .Bind("", "", () => _mpv.SetVolume01(vol - 0.05), ConsoleKey.DownArrow, ConsoleKey.Subtract, ConsoleKey.D9)
+        .Bind("", "", () => _mpv.SetMute(!_mpv.IsMuted), ConsoleKey.M)
         .Bind("", "", () => _playlist.Shuffle = !_playlist.Shuffle, ConsoleKey.S)
+        .Bind("", "", () => { if (_mpv.PositionSec > 5) { _mpv.SeekAbsolute(0); return; } _playlist.GoPrev(); }, ConsoleKey.B)
         .Bind("", "", () => Environment.Exit(0), ConsoleKey.Q)
-        .Bind("", "", () => _mpv.SetMute(!_mpv.IsMuted), ConsoleKey.M);
+        .Bind("", "", _playlist.Advance, ConsoleKey.N)
+        .Bind("", "", _playlist.CycleLoopMode, ConsoleKey.L);
 
         ThreadPool.QueueUserWorkItem(async _ =>
         {
@@ -85,7 +91,7 @@ public class BasicTUI
             string volS = mute ? $"{ThemeColors.Dim}Mute{ThemeColors.Reset}" : $"{(int)(vol * 100)}%";
             string volB = new string('━', (int)(vol * (w - volS.GetVisualLength() - 6))), vol2B = ThemeColors.Dim + new string('━', w - volB.Length - volS.GetVisualLength() - 6) + ThemeColors.Reset;
             canvas.WriteAtAndClear(0, 3, $"vol: {volS} {volB}{vol2B}");
-            canvas.WriteAtAndClear(0, 4, $"[{(isPlaying ? "⏸" : "▶")}] [{(loop == LoopMode.None ? $"{ThemeColors.Dim}None{ThemeColors.Reset}" : loop == LoopMode.Playlist ? "L" : "L1")}] Shuffle: {(!shuffle ? ThemeColors.Dim : "")}{shuffle}{ThemeColors.Reset}");
+            canvas.WriteAtAndClear(0, 4, $"[{(isPlaying ? "⏸" : "▶")}] Loop: {(loop == LoopMode.None ? $"{ThemeColors.Dim}None" : loop == LoopMode.Playlist ? $"{ThemeColors.Bright}Playlist" : $"{ThemeColors.Bright}Track")}{ThemeColors.Reset} Shuffle: {(shuffle ? $"{ThemeColors.Bright}On" : $"{ThemeColors.Dim}Off")}{ThemeColors.Reset}");
             canvas.Flush();
             Thread.Sleep(200);
         }

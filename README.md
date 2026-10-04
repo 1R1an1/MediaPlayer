@@ -66,6 +66,16 @@ dotnet publish -c Release -r linux-x64 --self-contained true
 sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr/local/bin/mp
 ```
 
+Uso:
+
+```bash
+mp                              # Abre la GUI sin archivos
+mp video.mkv ~/carpeta          # Abre la GUI con uno o más archivos/carpetas
+mp --nogui video.mkv            # Fuerza la TUI en lugar de la GUI
+```
+
+La TUI también se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
+
 ---
 
 ## Descarga de videos y música
@@ -87,29 +97,29 @@ Requiere tener `yt-dlp` y `ffmpeg` instalados.
 
 ## Atajos de teclado
 
-| Acción                   | Tecla              |
-| ------------------------ | ------------------ |
-| Play / Pausa             | `Space`, `K`       |
-| Siguiente                | `N`                |
-| Anterior                 | `B`                |
-| Retroceder 5s            | `←`                |
-| Avanzar 5s               | `→`                |
-| Retroceder 30s           | `Shift + ←`        |
-| Avanzar 30s              | `Shift + →`        |
-| Retroceder 60s           | `Ctrl + ←`         |
-| Avanzar 60s              | `Ctrl + →`         |
-| Volumen +5%              | `↑`, `+`, `0`      |
-| Volumen -5%              | `↓`, `-`, `9`      |
-| Mute                     | `M`                |
-| Cambiar modo loop        | `L`                |
-| Alternar modo aleatorio  | `S`                |
-| Siguiente pista de audio | `J`                |
-| Pantalla completa        | `F`                |
-| Salir de fullscreen      | `Esc`              |
-| Mostrar / ocultar cola   | `C`                |
-| Abrir archivos           | `Ctrl + O`         |
-| Abrir carpeta            | `Ctrl + Shift + O` |
-| Salir                    | `Q`                |
+| Acción                   | Tecla              | Modo     |
+| ------------------------ | ------------------ | -------- |
+| Play / Pausa             | `Space`, `K`       | GUI, TUI |
+| Siguiente                | `N`                | GUI, TUI |
+| Anterior                 | `B`                | GUI, TUI |
+| Retroceder 5s            | `←`                | GUI, TUI |
+| Avanzar 5s               | `→`                | GUI, TUI |
+| Retroceder 30s           | `Shift + ←`        | GUI      |
+| Avanzar 30s              | `Shift + →`        | GUI      |
+| Retroceder 60s           | `Ctrl + ←`         | GUI      |
+| Avanzar 60s              | `Ctrl + →`         | GUI      |
+| Volumen +5%              | `↑`, `+`, `0`      | GUI, TUI |
+| Volumen -5%              | `↓`, `-`, `9`      | GUI, TUI |
+| Mute                     | `M`                | GUI, TUI |
+| Cambiar modo loop        | `L`                | GUI, TUI |
+| Alternar modo aleatorio  | `S`                | GUI, TUI |
+| Siguiente pista de audio | `J`                | GUI      |
+| Pantalla completa        | `F`                | GUI      |
+| Salir de fullscreen      | `Esc`              | GUI      |
+| Mostrar / ocultar cola   | `C`                | GUI      |
+| Abrir archivos           | `Ctrl + O`         | GUI      |
+| Abrir carpeta            | `Ctrl + Shift + O` | GUI      |
+| Salir                    | `Q`                | GUI, TUI |
 
 ---
 
