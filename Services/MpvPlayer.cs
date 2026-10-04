@@ -338,6 +338,7 @@ public class MpvPlayer : MprisSource
                 FileName = "ffmpeg",
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                RedirectStandardInput = true,
                 WorkingDirectory = tempDir,
             };
 

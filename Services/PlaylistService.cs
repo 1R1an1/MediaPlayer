@@ -255,6 +255,7 @@ public class PlaylistService
                         FileName = "ffprobe",
                         Arguments = $"-v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{item.Path}\"",
                         RedirectStandardOutput = true,
+                        RedirectStandardInput = true,
                         UseShellExecute = false,
                         CreateNoWindow = true,
                     }
@@ -274,6 +275,7 @@ public class PlaylistService
                         FileName = "ffprobe",
                         Arguments = $"-v quiet -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 \"{item.Path}\"",
                         RedirectStandardOutput = true,
+                        RedirectStandardInput = true,
                         UseShellExecute = false,
                         CreateNoWindow = true,
                     }
@@ -291,6 +293,7 @@ public class PlaylistService
                 {
                     FileName = "ffmpeg",
                     UseShellExecute = false,
+                    RedirectStandardInput = true,
                     CreateNoWindow = true,
                     WorkingDirectory = tempDir,
                 };
