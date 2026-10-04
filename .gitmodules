@@ -1,3 +1,6 @@
-[submodule "SharpUtils"]
-	path = SharpUtils
+[submodule "Libs/SharpUtils"]
+	path = Libs/SharpUtils
 	url = https://github.com/1R1an1/SharpUtils.git
+[submodule "Libs/TermFlow.Net"]
+	path = Libs/TermFlow.Net
+	url = https://github.com/1R1an1/TermFlow.Net.git

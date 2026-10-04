@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="SharpUtils\**" />
+    <Compile Remove="Libs\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="SharpUtils\SharpUtils.csproj" />
+    <ProjectReference Include="Libs/SharpUtils/SharpUtils.csproj" />
+    <ProjectReference Include="Libs/TermFlow.Net/TermFlow.Net.csproj" />
   </ItemGroup>
 </Project>

@@ -42,7 +42,7 @@ Controles en tema oscuro sobre el reproductor, integraci처n con el escritorio v�
 
 ## Instalaci처n
 
-El repositorio incluye SharpUtils como subm처dulo.
+El repositorio incluye SharpUtils y TermFlow.Net como subm처dulos.
 
 Clonar con `--recursive`:
 
@@ -51,7 +51,7 @@ git clone --recursive https://github.com/1R1an1/MediaPlayer.git
 cd MediaPlayer
 ```
 
-O, si ya estaba clonado sin `--recursive`, inicializar el subm처dulo:
+O, si ya estaba clonado sin `--recursive`, inicializar los subm처dulos:
 
 ```bash
 git clone https://github.com/1R1an1/MediaPlayer.git

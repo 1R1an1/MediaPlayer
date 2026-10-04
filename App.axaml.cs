@@ -22,27 +22,32 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            Mpv = new MpvPlayer(out bool isMprisSuccess);
-            if (!isMprisSuccess)
-                Environment.Exit(1);
-
-            Mpv.Init();
-            Mpv.ErrorOccurred += Console.WriteLine;
-
-            Playlist = new PlaylistService(desktop.Args);
+            Init(desktop.Args);
 
             var main = new MainWindow();
             desktop.MainWindow = main;
-
-            if (Playlist.Items.Count > 0)
-            {
-                ThreadPool.QueueUserWorkItem(_ =>
-                {
-                    Thread.Sleep(750); // 750 o 1000, depende, si no se ve el video cambiar a 1000
-                    Playlist.SetCurrent(0);
-                });
-            }
         }
         base.OnFrameworkInitializationCompleted();
+    }
+
+    public static void Init(string[] args)
+    {
+        Mpv = new MpvPlayer(out bool isMprisSuccess);
+        if (!isMprisSuccess)
+            Environment.Exit(1);
+
+        Mpv.Init();
+        Mpv.ErrorOccurred += Console.WriteLine;
+
+        Playlist = new PlaylistService(args);
+
+        if (Playlist.Items.Count > 0)
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                Thread.Sleep(750); // 750 o 1000, depende, si no se ve el video cambiar a 1000
+                Playlist.SetCurrent(0);
+            });
+        }
     }
 }
