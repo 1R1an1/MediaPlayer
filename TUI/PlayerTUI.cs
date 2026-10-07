@@ -23,6 +23,9 @@ public class PlayerTUI
 {
     private enum Mode { Abrir, PlaylistMenu, PlaylistSearch }
 
+    /// <summary>Acción pendiente de switch de modo. Null = ninguna.</summary>
+    private enum Switch { Tab, EnterSearch, ExitSearch, AfterTreeConfirm }
+
     private static MpvPlayer _mpv => App.Mpv;
     private static PlaylistService _playlist => App.Playlist;
 
@@ -53,8 +56,7 @@ public class PlayerTUI
     // Render/switch sync
     private static readonly SemaphoreSlim _renderSignal = new(0, 1);
     private static int _renderPending;
-
-    private static int _pendingSwitch;
+    private static Switch? _pendingSwitch;
     private static TermCanvas _canvas;
     private static bool _running = true;
 
@@ -151,7 +153,7 @@ public class PlayerTUI
     private static void BuildRootRouter()
     {
         _rootRouter = new InputRouter(false)
-            .Bind("Tab", "cambiar modo", () => _pendingSwitch = 1, ConsoleKey.Tab)
+            .Bind("Tab", "cambiar modo", () => _pendingSwitch = Switch.Tab, ConsoleKey.Tab)
             .Bind("Q", "salir", Quit, ConsoleKey.Q)
             .Bind("Space/K", "play/pause", PlayPause, ConsoleKey.Spacebar, ConsoleKey.K)
             .Bind("←", "seek -5s", () => _mpv.SeekRelative(-5), ConsoleKey.LeftArrow)
@@ -166,11 +168,11 @@ public class PlayerTUI
             .BeforeKey(cki =>
             {
                 if (_mode == Mode.PlaylistMenu && (cki.Modifiers & ConsoleModifiers.Control) != 0 && cki.Key == ConsoleKey.F)
-                    _pendingSwitch = 2;
+                    _pendingSwitch = Switch.EnterSearch;
             });
     }
 
-    // --- Mode router builders (solo el router del modo, se attachan como child del root) ---
+    // --- Mode router builders ---
 
     private static InputRouter BuildAbrirRouter()
     {
@@ -187,7 +189,7 @@ public class PlayerTUI
                 RequestRender();
             },
             onSuccess: OnTreeConfirm,
-            onCancel: () => _pendingSwitch = 1);
+            onCancel: () => _pendingSwitch = Switch.Tab);
 
         return router;
     }
@@ -196,12 +198,12 @@ public class PlayerTUI
     {
         _mode = Mode.PlaylistMenu;
 
-        var items = GetPlaylistTitles();
+        var items = _cachedTitles;
         int start = items.Count > 0 ? Math.Clamp(_preservedPlaylistCursor, 0, items.Count - 1) : 0;
         _menuCursor = start;
 
         var router = Menu.AddBindings(items, start, cursor => { _menuCursor = cursor; _preservedPlaylistCursor = cursor; RequestRender(); },
-            onSuccess: OnPlaylistConfirm, onCancel: () => _pendingSwitch = 1);
+            onSuccess: OnPlaylistConfirm, onCancel: () => _pendingSwitch = Switch.Tab);
 
         return router;
     }
@@ -211,7 +213,7 @@ public class PlayerTUI
         _mode = Mode.PlaylistSearch;
         _searchState = null;
 
-        var items = GetPlaylistTitles();
+        var items = _cachedTitles;
         int start = items.Count > 0 ? Math.Clamp(_preservedPlaylistCursor, 0, items.Count - 1) : 0;
 
         var router = SearchList.AddBindings(items, "  Buscar: » ", start, state =>
@@ -220,30 +222,29 @@ public class PlayerTUI
                 RequestRender();
             },
             onSuccess: OnPlaylistConfirm,
-            onCancel: () => _pendingSwitch = 3); // Esc → vuelve a PlaylistMenu
+            onCancel: () => _pendingSwitch = Switch.ExitSearch);
 
         // Tab: también sale del search (vuelve a PlaylistMenu).
-        router.Bind("Tab", "salir búsqueda", () => _pendingSwitch = 3, ConsoleKey.Tab);
+        router.Bind("Tab", "salir búsqueda", () => _pendingSwitch = Switch.ExitSearch, ConsoleKey.Tab);
 
         return router;
     }
 
     private static void DoSwitch()
     {
-        if (_pendingSwitch == 0) return;
+        if (_pendingSwitch == null) return;
 
-        // Quita el modeRouter viejo del root y attacha el nuevo.
         if (_modeRouter != null) _rootRouter.RemoveChild(_modeRouter);
 
         _modeRouter = _pendingSwitch switch
         {
-            1 => _mode == Mode.Abrir ? BuildPlaylistMenuRouter() : BuildAbrirRouter(), // ciclo Tab
-            2 => BuildPlaylistSearchRouter(), // entrar search
-            3 => BuildPlaylistMenuRouter(), // salir search → PlaylistMenu
-            4 => BuildPlaylistMenuRouter(), // después de confirmar en Abrir → PlaylistMenu
+            Switch.Tab => _mode == Mode.Abrir ? BuildPlaylistMenuRouter() : BuildAbrirRouter(),
+            Switch.EnterSearch => BuildPlaylistSearchRouter(),
+            Switch.ExitSearch => BuildPlaylistMenuRouter(),
+            Switch.AfterTreeConfirm => BuildPlaylistMenuRouter(),
             _ => _modeRouter
         };
-        _pendingSwitch = 0;
+        _pendingSwitch = null;
 
         _modeRouter.Bind("", "", Quit, ConsoleKey.Q);
         _rootRouter.AddChild(_modeRouter);
@@ -301,7 +302,7 @@ public class PlayerTUI
         catch (Exception ex) { SetStatus($"Error: {ex.Message}"); }
 
         // Después de confirmar en Abrir, ir a PlaylistMenu. Diferido para no tocar el árbol durante Handle().
-        _pendingSwitch = 4;
+        _pendingSwitch = Switch.AfterTreeConfirm;
     }
 
     // --- Render ---
@@ -352,32 +353,28 @@ public class PlayerTUI
         if (!string.IsNullOrEmpty(_statusMsg))
             c.WriteAtAndClear(0, h - 2, $"{ThemeColors.Warning}{TruncateVisible(_statusMsg, w)}{ThemeColors.Reset}");
 
-        // nonListRows: path(0) + separator(1) + status(h-2) + scrollInd(h-1) = 4
-        int reserved = Console.WindowHeight - (h - 2);
+        // nonListRows: path(0) + separator(1) + status(h-2) + scrollInd(h-1) = 2
         int visible = Math.Max(1, _abrirScroll.VisibleRows);
-
-        _abrirScroll.Update(state.Cursor, state.Entries.Count, reserved);
+        _abrirScroll.Update(state.Cursor, state.Entries.Count, Console.WindowHeight - (h - 2));
 
         int listY = 2;
         if (state.Entries.Count == 0)
             c.WriteAtAndClear(0, listY, $"  {(state.IsBlocked ? "(carpeta bloqueada)" : "(carpeta vacía)")}", ThemeColors.Dim);
         else
         {
-            int end = Math.Min(state.Entries.Count, _abrirScroll.Scroll + visible);
-            for (int i = _abrirScroll.Scroll; i < end; i++)
+            c.DrawList(state.Entries, 0, listY, visible, _abrirScroll.Scroll, false, (entry, i) =>
             {
-                var entry = state.Entries[i];
                 string name = entry.IsDirectory ? entry.Name + "/" : entry.Name;
                 string cursorMark = (i == _abrirScroll.Cursor) ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ";
                 string nameCol = entry.IsDirectory
                     ? (i == _abrirScroll.Cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{name}{ThemeColors.Reset}" : $"{ThemeColors.Info}{name}{ThemeColors.Reset}")
                     : (i == _abrirScroll.Cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{name}{ThemeColors.Reset}" : name);
-                c.WriteAtAndClear(0, listY + (i - _abrirScroll.Scroll), $"{cursorMark}{nameCol}");
-            }
+                return $"{cursorMark}{nameCol}";
+            });
         }
 
         if (_abrirScroll.Scroll > 0)
-            c.WriteAt(w / 2 - 14, listY - 1, $"↑ {_abrirScroll.Scroll} ", ThemeColors.Dim); // lo borra el borde
+            c.WriteAt(w / 2 - 14, listY - 1, $"↑ {_abrirScroll.Scroll} ", ThemeColors.Dim);
         int remaining = state.Entries.Count - (_abrirScroll.Scroll + visible);
         if (remaining > 0)
             c.WriteAtAndClear(w / 2 - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
@@ -399,101 +396,68 @@ public class PlayerTUI
         plCanvas.Clear();
         spCanvas.Clear();
 
-        if (_mode == Mode.PlaylistSearch)
-            RenderPlaylistSearchContent(plCanvas);
+        if (_mode == Mode.PlaylistSearch && _searchState != null)
+            RenderPlaylistSearch(plCanvas, _searchState.Value);
         else
-            RenderPlaylistMenuContent(plCanvas);
+            RenderPlaylistMenu(plCanvas);
 
         RenderSpecsContent(spCanvas);
     }
 
-    private static void RenderPlaylistMenuContent(VirtualCanvas c)
+    /// <summary>Render de Playlist en modo Menu (sin prompt, cursor directo en _menuCursor).</summary>
+    private static void RenderPlaylistMenu(VirtualCanvas c)
     {
         int w = c.Width, h = c.Height;
 
-        int count = _playlist.Items.Count;
-        if (count == 0)
+        if (_playlist.Items.Count == 0)
         {
             c.WriteAtAndClear(0, 0, "  (vacío — presioná Tab para abrir archivos)", ThemeColors.Dim);
             return;
         }
 
-        // Header
-        c.WriteAtAndClear(0, 0, $"{ThemeColors.Primary}Playlist ({count} items){ThemeColors.Reset}  {ThemeColors.Dim}Ctrl+F buscar{ThemeColors.Reset}");
+        c.WriteAtAndClear(0, 0, $"{ThemeColors.Primary}Playlist ({_playlist.Items.Count} items){ThemeColors.Reset}  {ThemeColors.Dim}Ctrl+F buscar{ThemeColors.Reset}");
         c.WriteAt(0, 1, ThemeColors.Dim + new string('─', w) + ThemeColors.Reset);
 
-        // nonListRows: header(0) + separator(1) = 2
-        _playlistScroll.Update(_menuCursor, count, Console.WindowHeight - (h - 2));
+        _playlistScroll.Update(_menuCursor, _playlist.Items.Count, Console.WindowHeight - (h - 2));
         int visible = Math.Max(1, _playlistScroll.VisibleRows);
-        int listY = 2;
-        for (int i = _playlistScroll.Scroll; i < Math.Min(count, _playlistScroll.Scroll + visible); i++)
-        {
-            var item = _playlist.Items[i];
 
-            int durLen = item.DurationText.Length + 1;
+        // DrawList se encarga del bucle + WriteAtAndClear + limpiar filas no usadas.
+        c.DrawList(_playlist.Items, 0, 2, visible, _playlistScroll.Scroll, false, (item, i) =>
+            FormatPlaylistLine(item.Title, item.DurationText, item.IsCurrent, i == _playlistScroll.Cursor, w));
 
-            string titleTrim = TruncateVisible(item.Title, w - durLen - 4);
-            string titleCol = (i == _playlistScroll.Cursor) ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim;
-            string durCol = $"{ThemeColors.Dim}{item.DurationText}{ThemeColors.Reset}";
-
-            string line = $"{(item.IsCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ")}{(i == _playlistScroll.Cursor ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ")}{titleCol}";
-            int pad = w - line.GetVisualLength() - durLen;
-            if (pad > 0) line += new string(' ', pad);
-            line += durCol;
-            c.WriteAt(0, listY + (i - _playlistScroll.Scroll), line);
-        }
-
-        // ya se limpia con el borde y con los espacios en blanco del item
         if (_playlistScroll.Scroll > 0)
-            c.WriteAt(w - 14, listY - 1, $"↑ {_playlistScroll.Scroll} ", ThemeColors.Dim);
-        int remaining = count - (_playlistScroll.Scroll + visible);
+            c.WriteAt(w - 14, 1, $"↑ {_playlistScroll.Scroll} ", ThemeColors.Dim);
+        int remaining = _playlist.Items.Count - (_playlistScroll.Scroll + visible);
         if (remaining > 0)
             c.WriteAt(w - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
     }
 
-    private static void RenderPlaylistSearchContent(VirtualCanvas c)
+    /// <summary>Render de Playlist en modo Search (con prompt + cursor real).</summary>
+    private static void RenderPlaylistSearch(VirtualCanvas c, SearchListState state)
     {
         int w = c.Width, h = c.Height;
-
-        if (_searchState == null) return;
-        var state = _searchState.Value;
 
         c.WriteAtAndClear(0, 0, $"{state.LastPromptLine}{AnsiColor.Bold}{state.Query}{ThemeColors.Reset}");
         c.WriteAt(0, 1, ThemeColors.Dim + new string('─', w) + ThemeColors.Reset);
 
-        // nonListRows: prompt(0) + separator(1) + scrollInd(h-1) = 3
         _playlistScroll.Update(state.Cursor, state.Filtered.Count, Console.WindowHeight - (h - 3));
         int visible = Math.Max(1, _playlistScroll.VisibleRows);
 
-        int listY = 2;
         if (state.Filtered.Count == 0)
-            c.WriteAtAndClear(0, listY, "  (sin resultados — Esc para volver)", ThemeColors.Dim);
+            c.WriteAtAndClear(0, 2, "  (sin resultados — Esc para volver)", ThemeColors.Dim);
         else
         {
-            int end = Math.Min(state.Filtered.Count, _playlistScroll.Scroll + visible);
-            for (int i = _playlistScroll.Scroll; i < end; i++)
+            // DrawList recibe los filtered. El formatter resuelve originalIdx vía _titleIndex.
+            c.DrawList(state.Filtered, 0, 2, visible, _playlistScroll.Scroll, false, (item, i) =>
             {
-                int y = listY + (i - _playlistScroll.Scroll);
-                var item = state.Filtered[i];
                 _titleIndex.TryGetValue(item.Text, out int originalIdx);
-
-                string title = item.Text;
                 string dur = originalIdx >= 0 ? _playlist.Items[originalIdx].DurationText : "--:--";
                 bool isCurrent = originalIdx >= 0 && _playlist.Items[originalIdx].IsCurrent;
-                string marker = isCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ";
-
-                int durLen = dur.Length + 1;
-                string titleTrim = TruncateVisible(title, w - durLen - 4);
-
-                string line = $"{marker}{(i == _playlistScroll.Cursor ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ")}{(i == _playlistScroll.Cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim)}";
-                int pad = w - line.GetVisualLength() - durLen;
-                if (pad > 0) line += new string(' ', pad);
-                line += $"{ThemeColors.Dim}{dur}{ThemeColors.Reset}";
-                c.WriteAt(0, y, line);
-            }
+                return FormatPlaylistLine(item.Text, dur, isCurrent, i == _playlistScroll.Cursor, w);
+            });
 
             if (_playlistScroll.Scroll > 0)
-                c.WriteAtAndClear(w - 14, listY - 1, $"↑ {_playlistScroll.Scroll} ", ThemeColors.Dim);
+                c.WriteAtAndClear(w - 14, 1, $"↑ {_playlistScroll.Scroll} ", ThemeColors.Dim);
             int remaining = state.Filtered.Count - (_playlistScroll.Scroll + visible);
             if (remaining > 0)
                 c.WriteAtAndClear(w - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
@@ -503,6 +467,18 @@ public class PlayerTUI
         _canvas.CursorVisible = true;
         int cursorX = c.X + state.PromptLength + state.QueryCursorPos;
         if (cursorX < c.X + w) _canvas.CursorPos = (cursorX, c.Y);
+    }
+
+    /// <summary>Formatea una línea de playlist: marker + cursorMark + title (padded) + dur.</summary>
+    private static string FormatPlaylistLine(string title, string dur, bool isCurrent, bool isCursor, int w)
+    {
+        int durLen = dur.Length + 1;
+        string titleTrim = TruncateVisible(title, w - durLen - 4);
+        string titleCol = isCursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim;
+        string line = $"{(isCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ")}{(isCursor ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ")}{titleCol}";
+        int pad = w - line.GetVisualLength() - durLen;
+        if (pad > 0) line += new string(' ', pad);
+        return line + $"{ThemeColors.Dim}{dur}{ThemeColors.Reset}";
     }
 
     // Cache de FileInfo.Length por path (el syscall es caro para hacerlo cada render).
@@ -527,7 +503,6 @@ public class PlayerTUI
             return;
         }
 
-        // En modo Search, el item bajo cursor es el del search. En Menu, es _menuCursor.
         int originalIdx;
         if (_mode == Mode.PlaylistSearch && _searchState != null)
         {
@@ -600,29 +575,22 @@ public class PlayerTUI
 
     // --- Utils ---
 
-    /// <summary>Cache de titleToIndex, construida una vez por render.</summary>
     private static Dictionary<string, int> _titleIndex = new(StringComparer.Ordinal);
     private static int _titleIndexCount = -1;
+    private static List<string> _cachedTitles = new();
 
-    /// <summary>Refresca _titleIndex solo si cambió el count de la playlist.</summary>
     private static void RefreshTitleIndex()
     {
         if (_titleIndexCount == _playlist.Items.Count) return;
         _titleIndex.Clear();
+        _cachedTitles.Clear();
         for (int j = 0; j < _playlist.Items.Count; j++)
         {
             string title = _playlist.Items[j].Title;
             _titleIndex.TryAdd(title, j);
+            _cachedTitles.Add(title);
         }
         _titleIndexCount = _playlist.Items.Count;
-    }
-
-    private static List<string> GetPlaylistTitles()
-    {
-        var list = new List<string>(_playlist.Items.Count);
-        for (int j = 0; j < _playlist.Items.Count; j++)
-            list.Add(_playlist.Items[j].Title);
-        return list;
     }
 
     private static string TruncateVisible(string s, int max)

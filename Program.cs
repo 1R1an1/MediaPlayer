@@ -16,7 +16,12 @@ class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        if (args?.FirstOrDefault() == "--nogui")
+        if (args?.FirstOrDefault() == "--tui")
+        {
+            PlayerTUI.Start(args[1..]);
+            return 0;
+        }
+        else if (args?.FirstOrDefault() == "--nogui")
         {
             BasicTUI.Start(args[1..]);
             return 0;
