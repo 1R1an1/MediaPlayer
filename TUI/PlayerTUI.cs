@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using MediaPlayer.Models;
 using MediaPlayer.Services;
 using SharpUtils.Linux;
+using SharpUtils.Utilities;
 using TermFlow.Components.FullScreen;
 using TermFlow.Components.FullScreen.TreeExplorer;
 using TermFlow.Core;
@@ -52,15 +53,13 @@ public class PlayerTUI
     // Render/switch sync
     private static readonly SemaphoreSlim _renderSignal = new(0, 1);
     private static int _renderPending;
+
     private static int _pendingSwitch;
     private static TermCanvas _canvas;
     private static bool _running = true;
 
     private static ScrollState _abrirScroll;
     private static ScrollState _playlistScroll;
-
-    private static readonly string[] MediaExts =
-        [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
 
     public static void Start(string[] args)
     {
@@ -88,11 +87,9 @@ public class PlayerTUI
                 var ev = InputReader.ReadInput();
                 if (ev.Type != InputEventType.None)
                 {
-                    _rootRouter.Handle(ev);
-                    int sw = _pendingSwitch;
-                    _pendingSwitch = 0;
-                    if (sw != 0) DoSwitch(sw);
-                    RequestRender();
+                    if (_rootRouter.Handle(ev))
+                        RequestRender();
+                    DoSwitch();
                 }
                 await Task.Delay(15);
             }
@@ -103,8 +100,7 @@ public class PlayerTUI
         {
             _renderSignal.Wait();
             Interlocked.Exchange(ref _renderPending, 0);
-            try { Render(); }
-            catch { }
+            Render();
         }
 
         Engine.ExitFullScreen(true);
@@ -129,23 +125,18 @@ public class PlayerTUI
             _renderSignal.Release();
     }
 
-    private static void RequestSwitch(int code) => _pendingSwitch = code;
-
     private static void SetStatus(string msg)
     {
+        if (string.IsNullOrWhiteSpace(msg)) return;
         _statusCts?.Cancel();
         _statusMsg = msg;
-        if (string.IsNullOrEmpty(msg)) return;
-        _statusCts = new CancellationTokenSource();
-        var token = _statusCts.Token;
-        Task.Delay(TimeSpan.FromSeconds(15), token).ContinueWith(_ =>
+        _statusCts = new();
+        Task.Run(async () =>
         {
-            if (!token.IsCancellationRequested)
-            {
-                _statusMsg = "";
-                RequestRender();
-            }
-        }, TaskScheduler.Default);
+            try { await Task.Delay(15_000, _statusCts.Token); } catch { return; }
+            _statusMsg = "";
+            RequestRender();
+        }, _statusCts.Token);
     }
 
     private static void Quit()
@@ -160,7 +151,7 @@ public class PlayerTUI
     private static void BuildRootRouter()
     {
         _rootRouter = new InputRouter(false)
-            .Bind("Tab", "cambiar modo", () => RequestSwitch(1), ConsoleKey.Tab)
+            .Bind("Tab", "cambiar modo", () => _pendingSwitch = 1, ConsoleKey.Tab)
             .Bind("Q", "salir", Quit, ConsoleKey.Q)
             .Bind("Space/K", "play/pause", PlayPause, ConsoleKey.Spacebar, ConsoleKey.K)
             .Bind("←", "seek -5s", () => _mpv.SeekRelative(-5), ConsoleKey.LeftArrow)
@@ -174,10 +165,8 @@ public class PlayerTUI
             .Bind("N", "siguiente", _playlist.Advance, ConsoleKey.N)
             .BeforeKey(cki =>
             {
-                if (_mode == Mode.PlaylistMenu
-                    && (cki.Modifiers & ConsoleModifiers.Control) != 0
-                    && cki.Key == ConsoleKey.F)
-                    RequestSwitch(2);
+                if (_mode == Mode.PlaylistMenu && (cki.Modifiers & ConsoleModifiers.Control) != 0 && cki.Key == ConsoleKey.F)
+                    _pendingSwitch = 2;
             });
     }
 
@@ -191,18 +180,14 @@ public class PlayerTUI
         var options = new ExplorerOptions { Filter = ExplorerFilter.All, IgnoreSymlinks = true };
         var dataSource = new TreeExplorer.PhysicalDataSource(_preservedTreePath, options);
 
-        var router = TreeExplorer.AddBindings(
-            dataSource,
-            options,
-            null,
-            state =>
+        var router = TreeExplorer.AddBindings(dataSource, options, null, state =>
             {
                 _treeState = state;
                 _preservedTreePath = state.CurrentNode;
                 RequestRender();
             },
             onSuccess: OnTreeConfirm,
-            onCancel: () => RequestSwitch(1));
+            onCancel: () => _pendingSwitch = 1);
 
         return router;
     }
@@ -215,12 +200,8 @@ public class PlayerTUI
         int start = items.Count > 0 ? Math.Clamp(_preservedPlaylistCursor, 0, items.Count - 1) : 0;
         _menuCursor = start;
 
-        var router = Menu.AddBindings(
-            items,
-            start,
-            cursor => { _menuCursor = cursor; _preservedPlaylistCursor = cursor; RequestRender(); },
-            onSuccess: OnPlaylistConfirm,
-            onCancel: () => RequestSwitch(1));
+        var router = Menu.AddBindings(items, start, cursor => { _menuCursor = cursor; _preservedPlaylistCursor = cursor; RequestRender(); },
+            onSuccess: OnPlaylistConfirm, onCancel: () => _pendingSwitch = 1);
 
         return router;
     }
@@ -233,52 +214,38 @@ public class PlayerTUI
         var items = GetPlaylistTitles();
         int start = items.Count > 0 ? Math.Clamp(_preservedPlaylistCursor, 0, items.Count - 1) : 0;
 
-        var router = SearchList.AddBindings(
-            items,
-            "  Buscar: » ",
-            start,
-            state =>
+        var router = SearchList.AddBindings(items, "  Buscar: » ", start, state =>
             {
                 _searchState = state;
-                // NO actualizar _preservedPlaylistCursor aquí: SearchList arranca con
-                // Cursor=0 (ApplyFilter("") lo dispara), y pisaría el cursor preservado.
                 RequestRender();
             },
             onSuccess: OnPlaylistConfirm,
-            onCancel: () => RequestSwitch(3)); // Esc → vuelve a PlaylistMenu
-
-        // Q: salir de la app (sin esto, el Unhandled del LineEdit escribe 'q').
-        router.Bind("Q", "salir", Quit, ConsoleKey.Q);
+            onCancel: () => _pendingSwitch = 3); // Esc → vuelve a PlaylistMenu
 
         // Tab: también sale del search (vuelve a PlaylistMenu).
-        router.Bind("Tab", "salir búsqueda", () => RequestSwitch(3), ConsoleKey.Tab);
+        router.Bind("Tab", "salir búsqueda", () => _pendingSwitch = 3, ConsoleKey.Tab);
 
         return router;
     }
 
-    private static void DoSwitch(int code)
+    private static void DoSwitch()
     {
+        if (_pendingSwitch == 0) return;
+
         // Quita el modeRouter viejo del root y attacha el nuevo.
         if (_modeRouter != null) _rootRouter.RemoveChild(_modeRouter);
 
-        switch (code)
+        _modeRouter = _pendingSwitch switch
         {
-            case 1: // ciclo Tab
-                _modeRouter = _mode == Mode.Abrir ? BuildPlaylistMenuRouter() : BuildAbrirRouter();
-                break;
-            case 2: // entrar search
-                _modeRouter = BuildPlaylistSearchRouter();
-                break;
-            case 3: // salir search → PlaylistMenu
-                _modeRouter = BuildPlaylistMenuRouter();
-                break;
-            case 4: // después de confirmar en Abrir → PlaylistMenu
-                _modeRouter = BuildPlaylistMenuRouter();
-                break;
-            default:
-                return;
-        }
+            1 => _mode == Mode.Abrir ? BuildPlaylistMenuRouter() : BuildAbrirRouter(), // ciclo Tab
+            2 => BuildPlaylistSearchRouter(), // entrar search
+            3 => BuildPlaylistMenuRouter(), // salir search → PlaylistMenu
+            4 => BuildPlaylistMenuRouter(), // después de confirmar en Abrir → PlaylistMenu
+            _ => _modeRouter
+        };
+        _pendingSwitch = 0;
 
+        _modeRouter.Bind("", "", Quit, ConsoleKey.Q);
         _rootRouter.AddChild(_modeRouter);
         RequestRender();
     }
@@ -314,7 +281,7 @@ public class PlayerTUI
         {
             if (Directory.Exists(path))
             {
-                var files = LinuxKRL.GetReadableFiles(path, IsMediaFile).OrderBy(f => f).ToList();
+                var files = LinuxKRL.GetReadableFiles(path, MainWindow.IsMediaFile).OrderBy(f => f).ToList();
                 if (files.Count > 0)
                 {
                     _playlist.AddNew(files);
@@ -323,7 +290,7 @@ public class PlayerTUI
                 else
                     SetStatus("Carpeta sin archivos soportados");
             }
-            else if (File.Exists(path) && IsMediaFile(path))
+            else if (File.Exists(path) && MainWindow.IsMediaFile(path))
             {
                 _playlist.Add(path);
                 SetStatus($"Agregado: {Path.GetFileName(path)}");
@@ -334,13 +301,7 @@ public class PlayerTUI
         catch (Exception ex) { SetStatus($"Error: {ex.Message}"); }
 
         // Después de confirmar en Abrir, ir a PlaylistMenu. Diferido para no tocar el árbol durante Handle().
-        RequestSwitch(4);
-    }
-
-    public static bool IsMediaFile(string path)
-    {
-        string ext = Path.GetExtension(path).ToLowerInvariant();
-        return Array.IndexOf(MediaExts, ext) >= 0;
+        _pendingSwitch = 4;
     }
 
     // --- Render ---
@@ -353,7 +314,6 @@ public class PlayerTUI
         if (_mode != Mode.Abrir) RefreshTitleIndex();
 
         _canvas.Resize(W, H);
-        _canvas.Clear();
 
         _canvas.DrawBorder(0, 0, W - 1, H - 1, ThemeColors.Primary);
         _canvas.WriteAt(2, 0, " MediaPlayer ", ThemeColors.Primary);
@@ -378,6 +338,7 @@ public class PlayerTUI
         _canvas.WriteAt(x1 + 2, y1, " Abrir archivo/carpeta ", ThemeColors.Dim);
 
         var c = _canvas.CreateSubCanvas(x1 + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
+        c.Clear();
         int w = c.Width, h = c.Height;
 
         if (_treeState == null) return;
@@ -391,39 +352,35 @@ public class PlayerTUI
         if (!string.IsNullOrEmpty(_statusMsg))
             c.WriteAtAndClear(0, h - 2, $"{ThemeColors.Warning}{TruncateVisible(_statusMsg, w)}{ThemeColors.Reset}");
 
-        // nonListRows: path(0) + separator(1) + status(h-2) + scrollInd(h-3) = 4
-        int reserved = Console.WindowHeight - (h - 4);
-        _abrirScroll.Update(state.Cursor, state.Entries.Count, reserved);
-        int cursor = _abrirScroll.Cursor;
-        int scroll = _abrirScroll.Scroll;
+        // nonListRows: path(0) + separator(1) + status(h-2) + scrollInd(h-1) = 4
+        int reserved = Console.WindowHeight - (h - 2);
         int visible = Math.Max(1, _abrirScroll.VisibleRows);
+
+        _abrirScroll.Update(state.Cursor, state.Entries.Count, reserved);
 
         int listY = 2;
         if (state.Entries.Count == 0)
-        {
             c.WriteAtAndClear(0, listY, $"  {(state.IsBlocked ? "(carpeta bloqueada)" : "(carpeta vacía)")}", ThemeColors.Dim);
-        }
         else
         {
-            int end = Math.Min(state.Entries.Count, scroll + visible);
-            for (int i = scroll; i < end; i++)
+            int end = Math.Min(state.Entries.Count, _abrirScroll.Scroll + visible);
+            for (int i = _abrirScroll.Scroll; i < end; i++)
             {
-                int y = listY + (i - scroll);
                 var entry = state.Entries[i];
                 string name = entry.IsDirectory ? entry.Name + "/" : entry.Name;
-                string cursorMark = (i == cursor) ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ";
+                string cursorMark = (i == _abrirScroll.Cursor) ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ";
                 string nameCol = entry.IsDirectory
-                    ? (i == cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{name}{ThemeColors.Reset}" : $"{ThemeColors.Info}{name}{ThemeColors.Reset}")
-                    : (i == cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{name}{ThemeColors.Reset}" : name);
-                c.WriteAtAndClear(0, y, $"{cursorMark}{nameCol}");
+                    ? (i == _abrirScroll.Cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{name}{ThemeColors.Reset}" : $"{ThemeColors.Info}{name}{ThemeColors.Reset}")
+                    : (i == _abrirScroll.Cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{name}{ThemeColors.Reset}" : name);
+                c.WriteAtAndClear(0, listY + (i - _abrirScroll.Scroll), $"{cursorMark}{nameCol}");
             }
         }
 
-        if (scroll > 0)
-            c.WriteAtAndClear(w - 14, listY - 1, $"↑ {scroll} ", ThemeColors.Dim);
-        int remaining = state.Entries.Count - (scroll + visible);
+        if (_abrirScroll.Scroll > 0)
+            c.WriteAt(w / 2 - 14, listY - 1, $"↑ {_abrirScroll.Scroll} ", ThemeColors.Dim); // lo borra el borde
+        int remaining = state.Entries.Count - (_abrirScroll.Scroll + visible);
         if (remaining > 0)
-            c.WriteAtAndClear(w - 14, h - 3, $"↓ {remaining} ", ThemeColors.Dim);
+            c.WriteAtAndClear(w / 2 - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
     }
 
     private static void RenderPlaylist(int x1, int y1, int width, int height)
@@ -439,6 +396,8 @@ public class PlayerTUI
 
         var plCanvas = _canvas.CreateSubCanvas(x1 + 1, y1 + 1, x1 + half - 2, y1 + height - 2);
         var spCanvas = _canvas.CreateSubCanvas(x1 + half + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
+        plCanvas.Clear();
+        spCanvas.Clear();
 
         if (_mode == Mode.PlaylistSearch)
             RenderPlaylistSearchContent(plCanvas);
@@ -464,43 +423,32 @@ public class PlayerTUI
         c.WriteAt(0, 1, ThemeColors.Dim + new string('─', w) + ThemeColors.Reset);
 
         // nonListRows: header(0) + separator(1) = 2
-        int reserved = Console.WindowHeight - (h - 2);
-        _playlistScroll.Update(_menuCursor, count, reserved);
-        int cursor = _playlistScroll.Cursor;
-        int scroll = _playlistScroll.Scroll;
+        _playlistScroll.Update(_menuCursor, count, Console.WindowHeight - (h - 2));
         int visible = Math.Max(1, _playlistScroll.VisibleRows);
-
         int listY = 2;
-        int end = Math.Min(count, scroll + visible);
-        for (int i = scroll; i < end; i++)
+        for (int i = _playlistScroll.Scroll; i < Math.Min(count, _playlistScroll.Scroll + visible); i++)
         {
-            int y = listY + (i - scroll);
             var item = _playlist.Items[i];
-            string titleText = item.Title ?? Path.GetFileNameWithoutExtension(item.Path);
 
-            string dur = item.DurationText;
-            bool isCurrent = item.IsCurrent;
-            string marker = isCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ";
-            string cursorMark = (i == cursor) ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ";
+            int durLen = item.DurationText.Length + 1;
 
-            int durLen = dur.Length + 1;
-            int titleMax = w - durLen - 4;
-            string titleTrim = titleText.Length > titleMax ? titleText[..(Math.Max(0, titleMax - 1))] + "…" : titleText;
-            string titleCol = (i == cursor) ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim;
-            string durCol = $"{ThemeColors.Dim}{dur}{ThemeColors.Reset}";
+            string titleTrim = TruncateVisible(item.Title, w - durLen - 4);
+            string titleCol = (i == _playlistScroll.Cursor) ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim;
+            string durCol = $"{ThemeColors.Dim}{item.DurationText}{ThemeColors.Reset}";
 
-            string line = $"{marker}{cursorMark}{titleCol}";
+            string line = $"{(item.IsCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ")}{(i == _playlistScroll.Cursor ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ")}{titleCol}";
             int pad = w - line.GetVisualLength() - durLen;
             if (pad > 0) line += new string(' ', pad);
             line += durCol;
-            c.WriteAt(0, y, line);
+            c.WriteAt(0, listY + (i - _playlistScroll.Scroll), line);
         }
 
-        if (scroll > 0)
-            c.WriteAtAndClear(w - 14, listY - 1, $"↑ {scroll} ", ThemeColors.Dim);
-        int remaining = count - (scroll + visible);
+        // ya se limpia con el borde y con los espacios en blanco del item
+        if (_playlistScroll.Scroll > 0)
+            c.WriteAt(w - 14, listY - 1, $"↑ {_playlistScroll.Scroll} ", ThemeColors.Dim);
+        int remaining = count - (_playlistScroll.Scroll + visible);
         if (remaining > 0)
-            c.WriteAtAndClear(w - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
+            c.WriteAt(w - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
     }
 
     private static void RenderPlaylistSearchContent(VirtualCanvas c)
@@ -514,49 +462,39 @@ public class PlayerTUI
         c.WriteAt(0, 1, ThemeColors.Dim + new string('─', w) + ThemeColors.Reset);
 
         // nonListRows: prompt(0) + separator(1) + scrollInd(h-1) = 3
-        int reserved = Console.WindowHeight - (h - 3);
-        _playlistScroll.Update(state.Cursor, state.Filtered.Count, reserved);
-        int cursor = _playlistScroll.Cursor;
-        int scroll = _playlistScroll.Scroll;
+        _playlistScroll.Update(state.Cursor, state.Filtered.Count, Console.WindowHeight - (h - 3));
         int visible = Math.Max(1, _playlistScroll.VisibleRows);
 
-        var titleCache = _titleIndex;
         int listY = 2;
         if (state.Filtered.Count == 0)
-        {
             c.WriteAtAndClear(0, listY, "  (sin resultados — Esc para volver)", ThemeColors.Dim);
-        }
         else
         {
-            int end = Math.Min(state.Filtered.Count, scroll + visible);
-            for (int i = scroll; i < end; i++)
+            int end = Math.Min(state.Filtered.Count, _playlistScroll.Scroll + visible);
+            for (int i = _playlistScroll.Scroll; i < end; i++)
             {
-                int y = listY + (i - scroll);
+                int y = listY + (i - _playlistScroll.Scroll);
                 var item = state.Filtered[i];
-                titleCache.TryGetValue(item.Text, out int originalIdx);
+                _titleIndex.TryGetValue(item.Text, out int originalIdx);
 
                 string title = item.Text;
                 string dur = originalIdx >= 0 ? _playlist.Items[originalIdx].DurationText : "--:--";
                 bool isCurrent = originalIdx >= 0 && _playlist.Items[originalIdx].IsCurrent;
                 string marker = isCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ";
-                string cursorMark = (i == cursor) ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ";
 
                 int durLen = dur.Length + 1;
-                int titleMax = w - durLen - 4;
-                string titleTrim = title.Length > titleMax ? title[..(Math.Max(0, titleMax - 1))] + "…" : title;
-                string titleCol = (i == cursor) ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim;
-                string durCol = $"{ThemeColors.Dim}{dur}{ThemeColors.Reset}";
+                string titleTrim = TruncateVisible(title, w - durLen - 4);
 
-                string line = $"{marker}{cursorMark}{titleCol}";
+                string line = $"{marker}{(i == _playlistScroll.Cursor ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ")}{(i == _playlistScroll.Cursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim)}";
                 int pad = w - line.GetVisualLength() - durLen;
                 if (pad > 0) line += new string(' ', pad);
-                line += durCol;
+                line += $"{ThemeColors.Dim}{dur}{ThemeColors.Reset}";
                 c.WriteAt(0, y, line);
             }
 
-            if (scroll > 0)
-                c.WriteAtAndClear(w - 14, listY - 1, $"↑ {scroll} ", ThemeColors.Dim);
-            int remaining = state.Filtered.Count - (scroll + visible);
+            if (_playlistScroll.Scroll > 0)
+                c.WriteAtAndClear(w - 14, listY - 1, $"↑ {_playlistScroll.Scroll} ", ThemeColors.Dim);
+            int remaining = state.Filtered.Count - (_playlistScroll.Scroll + visible);
             if (remaining > 0)
                 c.WriteAtAndClear(w - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
         }
@@ -568,20 +506,12 @@ public class PlayerTUI
     }
 
     // Cache de FileInfo.Length por path (el syscall es caro para hacerlo cada render).
-    private static string _cachedSizePath;
-    private static string _cachedSizeValue = "—";
-
+    private static string _cachedSizePath, _cachedSizeValue;
     private static string GetItemSize(string path)
     {
         if (path == _cachedSizePath) return _cachedSizeValue;
         _cachedSizePath = path;
-        try
-        {
-            if (File.Exists(path)) { _cachedSizeValue = FormatBytes(new FileInfo(path).Length); return _cachedSizeValue; }
-        }
-        catch { }
-        _cachedSizeValue = "—";
-        return _cachedSizeValue;
+        return _cachedSizeValue = File.Exists(path) ? FileUtils.FormatFileSize(new FileInfo(path).Length) : null;
     }
 
     private static void RenderSpecsContent(VirtualCanvas c)
@@ -621,75 +551,51 @@ public class PlayerTUI
         void WriteRow(string label, string value)
         {
             if (y >= h - 1) return;
-            string lbl = $"{ThemeColors.Dim}{label}{ThemeColors.Reset} ";
-            c.WriteAt(0, y, lbl);
-            int lblLen = lbl.GetVisualLength();
-            string val = value ?? "—";
-            int maxVal = w - lblLen - 1;
-            if (val.Length > maxVal) val = val[..(Math.Max(0, maxVal - 1))] + "…";
-            c.WriteAtAndClear(lblLen, y, val);
+            c.WriteAt(0, y, label, ThemeColors.Dim);
+            c.WriteAtAndClear(label.Length, y, TruncateVisible(string.IsNullOrWhiteSpace(value) ? "—" : value, w - label.Length - 1));
             y++;
         }
 
-        WriteRow("Title:", item.Title ?? Path.GetFileNameWithoutExtension(item.Path));
-        WriteRow("Artist:", string.IsNullOrWhiteSpace(item.Artist) ? "—" : item.Artist);
-        WriteRow("Duration:", item.DurationText);
-        WriteRow("Size:", GetItemSize(item.Path));
-        WriteRow("Path:", item.Path);
+        WriteRow("Title: ", item.Title);
+        WriteRow("Artist: ", item.Artist);
+        WriteRow("Duration: ", item.DurationText);
+        WriteRow("Size: ", GetItemSize(item.Path));
+        WriteRow("Path: ", item.Path);
 
         y++;
         if (y < h - 1)
-        {
-            string st = item.IsCurrent ? $"{ThemeColors.Success}● Reproduciendo{ThemeColors.Reset}" : $"{ThemeColors.Dim}○ En cola{ThemeColors.Reset}";
-            c.WriteAtAndClear(0, y, st);
-        }
+            c.WriteAtAndClear(0, y, $"{(item.IsCurrent ? $"{ThemeColors.Success}● Reproduciendo" : $"{ThemeColors.Dim}○ En cola")}{ThemeColors.Reset}");
     }
 
     private static void RenderMiniPlayer(int x1, int y1, int width, int height)
     {
         _canvas.DrawBorder(x1, y1, x1 + width - 1, y1 + height - 1, ThemeColors.Primary);
-        _canvas.WriteAt(x1 + 2, y1, " Mini Player ", ThemeColors.Primary);
+        _canvas.WriteAt(x1 + 2, y1, " Player ", ThemeColors.Primary);
 
         var c = _canvas.CreateSubCanvas(x1 + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
         int w = c.Width;
 
         string title = string.IsNullOrEmpty(_title) ? (_mpv.CurrentPath != null ? Path.GetFileName(_mpv.CurrentPath) : "— sin archivo —") : _title;
-        c.WriteAtAndClear(0, 0, $"{AnsiColor.Bold}{ThemeColors.Bright}{TruncateVisible(title, w)}{ThemeColors.Reset}");
+        c.WriteAtAndClear(0, 0, $"{ThemeColors.Bright}{TruncateVisible(title, w)}{ThemeColors.Reset}");
 
         string artist = string.IsNullOrEmpty(_artist) ? "—" : _artist;
         c.WriteAtAndClear(0, 1, $"{ThemeColors.Dim}{TruncateVisible(artist, w)}{ThemeColors.Reset}");
 
         string posS = PlaylistItem.FormatTime(_pos), durS = PlaylistItem.FormatTime(_dur);
-        int meta = posS.Length + durS.Length + 2;
-        int barW = Math.Max(4, w - meta);
-        double ratio = _dur > 0 ? Math.Clamp(_pos / _dur, 0, 1) : 0;
-        int filled = (int)(ratio * barW);
-        string posBar = $"{ThemeColors.Primary}{new string('━', filled)}{ThemeColors.Reset}{ThemeColors.Dim}{new string('━', barW - filled)}{ThemeColors.Reset}";
-        c.WriteAt(0, 2, $"{posS} {posBar} {durS}");
+        int metaLen = posS.Length + durS.Length + 2;
+        string posB = new string('━', (int)(_pos / _dur * (w - metaLen))), durB = new string('━', w - metaLen - posB.Length);
+        c.WriteAt(0, 2, $"{posS} {ThemeColors.Primary}{posB}{ThemeColors.Reset}{ThemeColors.Dim}{durB}{ThemeColors.Reset} {durS}");
 
+        c.ClearLine(3);
         string volS = _mute ? $"{ThemeColors.Dim}Mute{ThemeColors.Reset}" : $"{(int)(_vol * 100)}%";
-        int volLabelLen = "vol: ".Length + volS.GetVisualLength() + 1;
-        int volBarW = Math.Max(4, w / 2 - volLabelLen - 1);
-        int volFilled = (int)(_vol * volBarW);
-        string volFilledBar = new string('━', volFilled);
-        string volEmptyBar = $"{ThemeColors.Dim}{new string('━', volBarW - volFilled)}{ThemeColors.Reset}";
-        string volBar = $"vol: {volS} {volFilledBar}{volEmptyBar}";
+        int volBarW = w / 2 - volS.GetVisualLength() + 5 - 1;
+        string volBF = new string('━', (int)(_vol * volBarW)), volBUF = new string('━', volBarW - volBF.Length);
+        c.WriteAt(0, 3, $"vol: {volS} {volBF}{ThemeColors.Dim}{volBUF}{ThemeColors.Reset}");
 
-        string playIcon = _isPlaying ? "⏸" : "▶";
-        string loopStr = _loop switch
-        {
-            LoopMode.None => $"{ThemeColors.Dim}None{ThemeColors.Reset}",
-            LoopMode.Track => $"{ThemeColors.Bright}Track{ThemeColors.Reset}",
-            LoopMode.Playlist => $"{ThemeColors.Bright}Playlist{ThemeColors.Reset}",
-            _ => $"{ThemeColors.Dim}None{ThemeColors.Reset}"
-        };
-        string shuffleStr = _shuffle ? $"{ThemeColors.Bright}On{ThemeColors.Reset}" : $"{ThemeColors.Dim}Off{ThemeColors.Reset}";
-
-        c.WriteAtAndClear(0, 3, volBar);
-        string right = $"{playIcon} Loop: {loopStr} Shuffle: {shuffleStr}";
+        string right = $"{(_isPlaying ? "⏸" : "▶")} Loop: {(_loop == LoopMode.None ? $"{ThemeColors.Dim}None" : _loop == LoopMode.Playlist ? $"{ThemeColors.Bright}Playlist" : $"{ThemeColors.Bright}Track")}{ThemeColors.Reset} Shuffle: {(_shuffle ? $"{ThemeColors.Bright}On" : $"{ThemeColors.Dim}Off")}{ThemeColors.Reset}";
         int rightLen = right.GetVisualLength();
         if (rightLen < w)
-            c.WriteAtAndClear(w - rightLen, 3, right);
+            c.WriteAt(w - rightLen, 3, right);
     }
 
     // --- Utils ---
@@ -705,7 +611,7 @@ public class PlayerTUI
         _titleIndex.Clear();
         for (int j = 0; j < _playlist.Items.Count; j++)
         {
-            string title = _playlist.Items[j].Title ?? Path.GetFileNameWithoutExtension(_playlist.Items[j].Path);
+            string title = _playlist.Items[j].Title;
             _titleIndex.TryAdd(title, j);
         }
         _titleIndexCount = _playlist.Items.Count;
@@ -715,22 +621,13 @@ public class PlayerTUI
     {
         var list = new List<string>(_playlist.Items.Count);
         for (int j = 0; j < _playlist.Items.Count; j++)
-            list.Add(_playlist.Items[j].Title ?? Path.GetFileNameWithoutExtension(_playlist.Items[j].Path));
+            list.Add(_playlist.Items[j].Title);
         return list;
-    }
-
-    private static string FormatBytes(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        double size = bytes;
-        int u = 0;
-        while (size >= 1024 && u < units.Length - 1) { size /= 1024; u++; }
-        return u == 0 ? $"{size} {units[u]}" : $"{size:0.##} {units[u]}";
     }
 
     private static string TruncateVisible(string s, int max)
     {
-        if (string.IsNullOrEmpty(s)) return "";
+        if (string.IsNullOrWhiteSpace(s)) return "";
         if (s.Length <= max) return s;
         if (max <= 1) return "…";
         return s[..(max - 1)] + "…";
