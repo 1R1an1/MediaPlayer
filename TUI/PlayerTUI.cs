@@ -91,7 +91,7 @@ public class PlayerTUI
 
         SubscribeEvents();
         BuildRootRouter();
-        _modeRouter = BuildAbrirRouter();
+        _modeRouter = _playlist.Items.Count == 0 ? BuildAbrirRouter() : BuildPlaylistMenuRouter();
         _rootRouter.AddChild(_modeRouter);
         RequestRender();
 
@@ -230,6 +230,16 @@ public class PlayerTUI
         var router = SearchList.AddBindings(items, "  Buscar: » ", start, state =>
             {
                 _searchState = state;
+                if (state.Filtered.Count > 0)
+                {
+                    int cursorInFiltered = state.Cursor;
+                    if (cursorInFiltered >= 0 && cursorInFiltered < state.Filtered.Count)
+                    {
+                        string text = state.Filtered[cursorInFiltered].Text;
+                        if (_titleIndex.TryGetValue(text, out int originalIdx) && originalIdx >= 0)
+                            _preservedPlaylistCursor = originalIdx;
+                    }
+                }
                 RequestRender();
             },
             onSuccess: OnPlaylistConfirm,
@@ -364,8 +374,8 @@ public class PlayerTUI
             _abrirCanvas.WriteAtAndClear(0, h - 2, $"{ThemeColors.Warning}{TruncateVisible(_statusMsg, w)}{ThemeColors.Reset}");
 
         // nonListRows: path(0) + separator(1) + status(h-2) + scrollInd(h-1) = 2
-        int visible = Math.Max(1, _abrirScroll.VisibleRows);
         _abrirScroll.Update(state.Cursor, state.Entries.Count, Console.WindowHeight - (h - 2));
+        int visible = Math.Max(1, _abrirScroll.VisibleRows);
 
         int listY = 2;
         if (state.Entries.Count == 0)
