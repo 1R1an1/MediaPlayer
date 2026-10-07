@@ -179,10 +179,7 @@ public class PlayerTUI
         _mode = Mode.Abrir;
         _treeState = null;
 
-        var options = new ExplorerOptions { Filter = ExplorerFilter.All, IgnoreSymlinks = true };
-        var dataSource = new TreeExplorer.PhysicalDataSource(_preservedTreePath, options);
-
-        var router = TreeExplorer.AddBindings(dataSource, options, null, state =>
+        var router = TreeExplorer.AddBindings(_preservedTreePath, new ExplorerOptions { Filter = ExplorerFilter.All, IgnoreSymlinks = true }, null, state =>
             {
                 _treeState = state;
                 _preservedTreePath = state.CurrentNode;
