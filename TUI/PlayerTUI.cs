@@ -63,6 +63,20 @@ public class PlayerTUI
     private static ScrollState _abrirScroll;
     private static ScrollState _playlistScroll;
 
+    private static VirtualCanvas _abrirCanvas;
+    private static VirtualCanvas _plCanvas;
+    private static VirtualCanvas _spCanvas;
+    private static VirtualCanvas _miniCanvas;
+
+    /// <summary>Obtiene un sub-canvas cacheado, creándolo la 1ra vez y resizeando las siguientes.</summary>
+    private static VirtualCanvas GetSubCanvas(VirtualCanvas field, int x1, int y1, int x2, int y2)
+    {
+        if (field == null)
+            return _canvas.CreateSubCanvas(x1, y1, x2, y2);
+        field.Resize(x1, y1, x2, y2);
+        return field;
+    }
+
     public static void Start(string[] args)
     {
         App.Init(args);
@@ -335,20 +349,19 @@ public class PlayerTUI
         _canvas.DrawBorder(x1, y1, x1 + width - 1, y1 + height - 1, ThemeColors.Dim);
         _canvas.WriteAt(x1 + 2, y1, " Abrir archivo/carpeta ", ThemeColors.Dim);
 
-        var c = _canvas.CreateSubCanvas(x1 + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
-        c.Clear();
-        int w = c.Width, h = c.Height;
+        _abrirCanvas = GetSubCanvas(_abrirCanvas, x1 + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
+        int w = _abrirCanvas.Width, h = _abrirCanvas.Height;
 
         if (_treeState == null) return;
         var state = _treeState.Value;
 
         string path = state.CurrentNode;
         string pathDisplay = path.Length > w - 2 ? "…" + path[^(w - 3)..] : path;
-        c.WriteAtAndClear(0, 0, $"{ThemeColors.Primary}{pathDisplay}{ThemeColors.Reset}");
-        c.WriteAt(0, 1, ThemeColors.Dim + new string('─', w) + ThemeColors.Reset);
+        _abrirCanvas.WriteAtAndClear(0, 0, $"{ThemeColors.Primary}{pathDisplay}{ThemeColors.Reset}");
+        _abrirCanvas.WriteAt(0, 1, ThemeColors.Dim + new string('─', w) + ThemeColors.Reset);
 
         if (!string.IsNullOrEmpty(_statusMsg))
-            c.WriteAtAndClear(0, h - 2, $"{ThemeColors.Warning}{TruncateVisible(_statusMsg, w)}{ThemeColors.Reset}");
+            _abrirCanvas.WriteAtAndClear(0, h - 2, $"{ThemeColors.Warning}{TruncateVisible(_statusMsg, w)}{ThemeColors.Reset}");
 
         // nonListRows: path(0) + separator(1) + status(h-2) + scrollInd(h-1) = 2
         int visible = Math.Max(1, _abrirScroll.VisibleRows);
@@ -356,10 +369,10 @@ public class PlayerTUI
 
         int listY = 2;
         if (state.Entries.Count == 0)
-            c.WriteAtAndClear(0, listY, $"  {(state.IsBlocked ? "(carpeta bloqueada)" : "(carpeta vacía)")}", ThemeColors.Dim);
+            _abrirCanvas.WriteAtAndClear(0, listY, $"  {(state.IsBlocked ? "(carpeta bloqueada)" : "(carpeta vacía)")}", ThemeColors.Dim);
         else
         {
-            c.DrawList(state.Entries, 0, listY, visible, _abrirScroll.Scroll, false, (entry, i) =>
+            _abrirCanvas.DrawList(state.Entries, 0, listY, visible, _abrirScroll.Scroll, false, (entry, i) =>
             {
                 string name = entry.IsDirectory ? entry.Name + "/" : entry.Name;
                 string cursorMark = (i == _abrirScroll.Cursor) ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ";
@@ -371,10 +384,10 @@ public class PlayerTUI
         }
 
         if (_abrirScroll.Scroll > 0)
-            c.WriteAt(w / 2 - 14, listY - 1, $"↑ {_abrirScroll.Scroll} ", ThemeColors.Dim);
+            _abrirCanvas.WriteAt(w / 2 - 14, listY - 1, $"↑ {_abrirScroll.Scroll} ", ThemeColors.Dim);
         int remaining = state.Entries.Count - (_abrirScroll.Scroll + visible);
         if (remaining > 0)
-            c.WriteAtAndClear(w / 2 - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
+            _abrirCanvas.WriteAtAndClear(w / 2 - 14, h - 1, $"↓ {remaining} ", ThemeColors.Dim);
     }
 
     private static void RenderPlaylist(int x1, int y1, int width, int height)
@@ -388,17 +401,15 @@ public class PlayerTUI
         _canvas.DrawBorder(x1 + half, y1, x1 + width - 1, y1 + height - 1, ThemeColors.Dim);
         _canvas.WriteAt(x1 + half + 2, y1, " Specs ", ThemeColors.Dim);
 
-        var plCanvas = _canvas.CreateSubCanvas(x1 + 1, y1 + 1, x1 + half - 2, y1 + height - 2);
-        var spCanvas = _canvas.CreateSubCanvas(x1 + half + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
-        plCanvas.Clear();
-        spCanvas.Clear();
+        _plCanvas = GetSubCanvas(_plCanvas, x1 + 1, y1 + 1, x1 + half - 2, y1 + height - 2);
+        _spCanvas = GetSubCanvas(_spCanvas, x1 + half + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
 
         if (_mode == Mode.PlaylistSearch && _searchState != null)
-            RenderPlaylistSearch(plCanvas, _searchState.Value);
+            RenderPlaylistSearch(_plCanvas, _searchState.Value);
         else
-            RenderPlaylistMenu(plCanvas);
+            RenderPlaylistMenu(_plCanvas);
 
-        RenderSpecsContent(spCanvas);
+        RenderSpecsContent(_spCanvas);
     }
 
     /// <summary>Render de Playlist en modo Menu (sin prompt, cursor directo en _menuCursor).</summary>
@@ -544,30 +555,30 @@ public class PlayerTUI
         _canvas.DrawBorder(x1, y1, x1 + width - 1, y1 + height - 1, ThemeColors.Primary);
         _canvas.WriteAt(x1 + 2, y1, " Player ", ThemeColors.Primary);
 
-        var c = _canvas.CreateSubCanvas(x1 + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
-        int w = c.Width;
+        _miniCanvas = GetSubCanvas(_miniCanvas, x1 + 1, y1 + 1, x1 + width - 2, y1 + height - 2);
+        int w = _miniCanvas.Width;
 
         string title = string.IsNullOrEmpty(_title) ? (_mpv.CurrentPath != null ? Path.GetFileName(_mpv.CurrentPath) : "— sin archivo —") : _title;
-        c.WriteAtAndClear(0, 0, $"{ThemeColors.Bright}{TruncateVisible(title, w)}{ThemeColors.Reset}");
+        _miniCanvas.WriteAtAndClear(0, 0, $"{ThemeColors.Bright}{TruncateVisible(title, w)}{ThemeColors.Reset}");
 
         string artist = string.IsNullOrEmpty(_artist) ? "—" : _artist;
-        c.WriteAtAndClear(0, 1, $"{ThemeColors.Dim}{TruncateVisible(artist, w)}{ThemeColors.Reset}");
+        _miniCanvas.WriteAtAndClear(0, 1, $"{ThemeColors.Dim}{TruncateVisible(artist, w)}{ThemeColors.Reset}");
 
         string posS = PlaylistItem.FormatTime(_pos), durS = PlaylistItem.FormatTime(_dur);
         int metaLen = posS.Length + durS.Length + 2;
         string posB = new string('━', (int)(_pos / _dur * (w - metaLen))), durB = new string('━', w - metaLen - posB.Length);
-        c.WriteAt(0, 2, $"{posS} {ThemeColors.Primary}{posB}{ThemeColors.Reset}{ThemeColors.Dim}{durB}{ThemeColors.Reset} {durS}");
+        _miniCanvas.WriteAt(0, 2, $"{posS} {ThemeColors.Primary}{posB}{ThemeColors.Reset}{ThemeColors.Dim}{durB}{ThemeColors.Reset} {durS}");
 
-        c.ClearLine(3);
+        _miniCanvas.ClearLine(3);
         string volS = _mute ? $"{ThemeColors.Dim}Mute{ThemeColors.Reset}" : $"{(int)(_vol * 100)}%";
         int volBarW = w / 2 - volS.GetVisualLength() + 5 - 1;
         string volBF = new string('━', (int)(_vol * volBarW)), volBUF = new string('━', volBarW - volBF.Length);
-        c.WriteAt(0, 3, $"vol: {volS} {volBF}{ThemeColors.Dim}{volBUF}{ThemeColors.Reset}");
+        _miniCanvas.WriteAt(0, 3, $"vol: {volS} {volBF}{ThemeColors.Dim}{volBUF}{ThemeColors.Reset}");
 
         string right = $"{(_isPlaying ? "⏸" : "▶")} Loop: {(_loop == LoopMode.None ? $"{ThemeColors.Dim}None" : _loop == LoopMode.Playlist ? $"{ThemeColors.Bright}Playlist" : $"{ThemeColors.Bright}Track")}{ThemeColors.Reset} Shuffle: {(_shuffle ? $"{ThemeColors.Bright}On" : $"{ThemeColors.Dim}Off")}{ThemeColors.Reset}";
         int rightLen = right.GetVisualLength();
         if (rightLen < w)
-            c.WriteAt(w - rightLen, 3, right);
+            _miniCanvas.WriteAt(w - rightLen, 3, right);
     }
 
     // --- Utils ---
