@@ -21,6 +21,8 @@ public class KeyBindings
     public Action TogglePlayPause;
     public Action<double> SeekRelative;  // segundos (positivo = adelante)
     public Action<double> VolumeDelta;   // delta 0..1
+    public Action FrameStep;             // avanzar 1 frame
+    public Action FrameBackStep;         // retroceder 1 frame
     public Action ToggleMute;
     public Action Next;
     public Action Prev;
@@ -45,6 +47,9 @@ public class KeyBindings
         Bind(Key.Right, KeyModifiers.Shift, () => SeekRelative?.Invoke(30));
         Bind(Key.Left, KeyModifiers.Control, () => SeekRelative?.Invoke(-60));
         Bind(Key.Right, KeyModifiers.Control, () => SeekRelative?.Invoke(60));
+
+        Bind(Key.OemPeriod, KeyModifiers.None, () => FrameStep?.Invoke());
+        Bind(Key.OemComma, KeyModifiers.None, () => FrameBackStep?.Invoke());
 
         Bind(Key.Up, KeyModifiers.None, () => VolumeDelta?.Invoke(0.05));
         Bind(Key.Down, KeyModifiers.None, () => VolumeDelta?.Invoke(-0.05));

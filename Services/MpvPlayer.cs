@@ -23,6 +23,7 @@ public class MpvPlayer : MprisSource
 {
     private IntPtr _handle;
     private volatile bool _running;
+    private volatile bool _frameStepping;
     private bool _eofFired;
 
     // Estado público (accedido desde el thread de eventos y desde UI).
@@ -122,6 +123,7 @@ public class MpvPlayer : MprisSource
         SetOptionString("keep-open", "yes");
         SetOptionString("idle", "yes");
         SetOptionString("ytdl", "no");
+        SetOptionString("hr-seek", "yes");
 
         if (LibMpv.mpv_initialize(_handle) < 0)
             throw new InvalidOperationException("mpv_initialize() falló.");
@@ -227,8 +229,16 @@ public class MpvPlayer : MprisSource
                 {
                     int val = Marshal.PtrToStructure<int>(prop.data);
                     IsPlaying = val == 0;
-                    IsPlayingChanged?.Invoke(IsPlaying);
-                    MprisService.Update();
+                    if (_frameStepping)
+                    {
+                        if (!IsPlaying)
+                            _frameStepping = false;
+                    }
+                    else
+                    {
+                        IsPlayingChanged?.Invoke(IsPlaying);
+                        MprisService.Update();
+                    }
                 }
                 break;
 
@@ -428,6 +438,14 @@ public class MpvPlayer : MprisSource
 
     public void SeekRelative(double delta)
         => Command("seek", delta.ToString("F3", CultureInfo.InvariantCulture), "relative");
+
+    public void FrameStep()
+    {
+        _frameStepping = true;
+        Command("frame-step");
+    }
+
+    public void FrameBackStep() => Command("frame-back-step");
 
     // MprisSource overrides
     protected override void TogglePlayPause() => PlayPause();

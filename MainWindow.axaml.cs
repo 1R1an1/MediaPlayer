@@ -47,6 +47,8 @@ public partial class MainWindow : Window
         // --- KEYBINDINGS --- //
         _keys.TogglePlayPause = PlayerView.PlayPause;
         _keys.SeekRelative = sec => _mpv?.SeekRelative(sec);
+        _keys.FrameStep = () => _mpv?.FrameStep();
+        _keys.FrameBackStep = () => _mpv?.FrameBackStep();
         _keys.VolumeDelta = delta => _mpv?.SetVolume01(Math.Clamp(_mpv.Volume + delta, 0, 1));
         _keys.ToggleMute = () => _mpv?.SetMute(!_mpv.IsMuted);
         _keys.Next = PlayerView.Next;

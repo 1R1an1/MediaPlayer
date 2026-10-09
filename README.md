@@ -108,6 +108,8 @@ Requiere tener `yt-dlp` y `ffmpeg` instalados.
 | Avanzar 30s              | `Shift + →`        | GUI      |
 | Retroceder 60s           | `Ctrl + ←`         | GUI      |
 | Avanzar 60s              | `Ctrl + →`         | GUI      |
+| Avanzar 1 frame          | `.`                | GUI      |
+| Retroceder 1 frame       | `,`                | GUI      |
 | Volumen +5%              | `↑`, `+`, `0`      | GUI, TUI |
 | Volumen -5%              | `↓`, `-`, `9`      | GUI, TUI |
 | Mute                     | `M`                | GUI, TUI |
