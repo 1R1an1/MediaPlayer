@@ -13,6 +13,7 @@ public class BasicTUI
 {
     private static MpvPlayer _mpv => App.Mpv;
     private static PlaylistService _playlist => App.Playlist;
+    private static Player _player => App.Player;
 
     public static void Start(string[] args)
     {
@@ -24,7 +25,7 @@ public class BasicTUI
         int _renderPending = 0;
         double vol = 1, pos = 0, dur = 0;
         string title = "", artist = "";
-        bool isPlaying = true, shuffle = false, mute = false;
+        bool isPlaying = false, shuffle = false, mute = false;
         LoopMode loop = LoopMode.None;
 
         void RequestRender()
@@ -45,22 +46,17 @@ public class BasicTUI
         using var canvas = new TermCanvas(5, true, false, 250, (_, _, _) => RequestRender());
 
         var input = new InputRouter()
-        .Bind("", "", () =>
-        {
-            if (_mpv.CurrentPath == null) return;
-            else if (_mpv.EofReached) { _mpv.SeekAbsolute(0); _mpv.Play(); }
-            else _mpv.PlayPause();
-        }, ConsoleKey.Spacebar, ConsoleKey.K)
-        .Bind("", "", () => _mpv.SeekRelative(-5), ConsoleKey.LeftArrow)
-        .Bind("", "", () => _mpv.SeekRelative(5), ConsoleKey.RightArrow)
-        .Bind("", "", () => _mpv.SetVolume01(vol + 0.05), ConsoleKey.UpArrow, ConsoleKey.Add, ConsoleKey.D0)
-        .Bind("", "", () => _mpv.SetVolume01(vol - 0.05), ConsoleKey.DownArrow, ConsoleKey.Subtract, ConsoleKey.D9)
-        .Bind("", "", () => _mpv.SetMute(!_mpv.IsMuted), ConsoleKey.M)
-        .Bind("", "", () => _playlist.Shuffle = !_playlist.Shuffle, ConsoleKey.S)
-        .Bind("", "", () => { if (_mpv.PositionSec > 5) { _mpv.SeekAbsolute(0); return; } _playlist.GoPrev(); }, ConsoleKey.B)
+        .Bind("", "", _player.PlayPause, ConsoleKey.Spacebar, ConsoleKey.K)
+        .Bind("", "", () => _player.SeekRelative(-5), ConsoleKey.LeftArrow)
+        .Bind("", "", () => _player.SeekRelative(5), ConsoleKey.RightArrow)
+        .Bind("", "", () => _player.VolumeDelta(0.05), ConsoleKey.UpArrow, ConsoleKey.Add, ConsoleKey.D0)
+        .Bind("", "", () => _player.VolumeDelta(-0.05), ConsoleKey.DownArrow, ConsoleKey.Subtract, ConsoleKey.D9)
+        .Bind("", "", _player.ToggleMute, ConsoleKey.M)
+        .Bind("", "", _player.ToggleShuffle, ConsoleKey.S)
+        .Bind("", "", _player.Preview, ConsoleKey.B)
         .Bind("", "", () => Environment.Exit(0), ConsoleKey.Q)
-        .Bind("", "", _playlist.Advance, ConsoleKey.N)
-        .Bind("", "", _playlist.CycleLoopMode, ConsoleKey.L);
+        .Bind("", "", _player.Next, ConsoleKey.N)
+        .Bind("", "", _player.CycleLoopMode, ConsoleKey.L);
 
         ThreadPool.QueueUserWorkItem(async _ =>
         {
