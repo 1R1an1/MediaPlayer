@@ -23,8 +23,10 @@ public partial class PlayerView : UserControl
     private MpvPlayer _mpv => App.Mpv;
     private PlaylistService _playlist => App.Playlist;
     private Player _player => App.Player;
-    private Color? MutedColor = Application.Current.FindResource("MutedColor") as Color?;
-    private Color? AccentColor = Application.Current.FindResource("AccentColor") as Color?;
+    private readonly Color? MutedColor = Application.Current.FindResource("MutedColor") as Color?;
+    private readonly Color? AccentColor = Application.Current.FindResource("AccentColor") as Color?;
+    private readonly Cursor ArrowCursor = new(StandardCursorType.Arrow);
+    private readonly Cursor HiddenCursor = new(StandardCursorType.None);
 
     private System.Timers.Timer _hideTimer;
     private bool _seeking;
@@ -95,16 +97,18 @@ public partial class PlayerView : UserControl
         TitleVideo.Opacity = 1;
         _hideTimer?.Stop();
         _hideTimer?.Start();
+        Cursor = ArrowCursor;
     }
 
     private void HideControls()
     {
-        if (_canHide)
-        {
-            ControlsOverlay.Opacity = 0;
-            TitleVideo.Opacity = 0;
-            _hideTimer?.Stop();
-        }
+        if (!_canHide)
+            return;
+
+        ControlsOverlay.Opacity = 0;
+        TitleVideo.Opacity = 0;
+        _hideTimer?.Stop();
+        Cursor = HiddenCursor;
     }
 
     private CancellationTokenSource volumeCts;
