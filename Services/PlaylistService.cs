@@ -69,7 +69,7 @@ public class PlaylistService
         }
     }
 
-    public PlaylistService(string[] args)
+    public PlaylistService()
     {
         _mpv.MPRISLoopChanged += SetLoopMode;
         _mpv.EndReached += () =>
@@ -81,26 +81,6 @@ public class PlaylistService
             }
             else Advance();
         };
-        if (args == null || args.Length < 1) return;
-        foreach (var p in args.Where(f => File.Exists(f) || Directory.Exists(f)).Select(Path.GetFullPath).OrderBy(f => f))
-        {
-            if (Directory.Exists(p))
-            {
-                foreach (var f in LinuxKRL.GetReadableFiles(p, MainWindow.IsMediaFile).OrderBy(f => f))
-                {
-                    var file = new PlaylistItem(f);
-                    _originalItems.Add(file);
-                    _items.Add(file);
-                }
-                continue;
-            }
-            var item = new PlaylistItem(p);
-            _originalItems.Add(item);
-            _items.Add(item);
-        }
-        Probe();
-        if (_items.Count > 0)
-            SetCurrent(0);
     }
 
     public void Add(params IEnumerable<string> paths)

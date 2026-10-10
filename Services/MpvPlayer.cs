@@ -435,7 +435,9 @@ public class MpvPlayer : MprisSource
     public void Play() => SetPropertyString("pause", "no");
     public void Pause() => SetPropertyString("pause", "yes");
     public void SetVolume01(double v01) => SetDoubleProperty("volume", Math.Clamp(v01, 0, 1) * 100.0);
+    public void SetVolume01Relative(double delta) => SetVolume01(Volume + delta);
     public void SetMute(bool m) => SetPropertyString("mute", m ? "yes" : "no");
+    public void ToggleMute() => SetMute(!IsMuted);
     public void SetAudioTrack(int id) => SetIntProperty("aid", id);
 
     public void SeekAbsolute(double seconds)

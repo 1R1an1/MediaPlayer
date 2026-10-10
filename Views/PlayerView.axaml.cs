@@ -22,6 +22,7 @@ public partial class PlayerView : UserControl
 {
     private MpvPlayer _mpv => App.Mpv;
     private PlaylistService _playlist => App.Playlist;
+    private Player _player => App.Player;
     private Color? MutedColor = Application.Current.FindResource("MutedColor") as Color?;
     private Color? AccentColor = Application.Current.FindResource("AccentColor") as Color?;
 
@@ -42,12 +43,12 @@ public partial class PlayerView : UserControl
         VideoHost.SetMpvHandle(_mpv.MpvHandle);
 
         // --- UI --- //
-        PlayPauseBtn.Click += (_, _) => PlayPause();
-        PrevBtn.Click += (_, _) => Preview();
-        NextBtn.Click += (_, _) => Next();
-        MuteBtn.Click += (_, _) => _mpv?.SetMute(!_mpv.IsMuted);
+        PlayPauseBtn.Click += (_, _) => { _player.PlayPause(); ShowControls(); };
+        PrevBtn.Click += (_, _) => _player.Preview();
+        NextBtn.Click += (_, _) => _player.Next();
+        MuteBtn.Click += (_, _) => _player.ToggleMute();
         AudioBtn.Click += (_, _) => ShowAudioMenu();
-        LoopBtn.Click += (_, _) => _playlist.CycleLoopMode();
+        LoopBtn.Click += (_, _) => _player.CycleLoopMode();
         FullScreenBtn.Click += (_, _) => ToggleFullScreen?.Invoke();
 
         RootGrid.PointerMoved += OnRootPointerMoved;
@@ -179,7 +180,7 @@ public partial class PlayerView : UserControl
         if (e.ClickCount >= 2)
             ToggleFullScreen?.Invoke();
         else if (_mpv.CurrentPath != null)
-            _mpv.PlayPause();
+            _player.PlayPause();
 
         ShowControls();
     }
@@ -188,9 +189,9 @@ public partial class PlayerView : UserControl
     {
         // e.Delta.Y > 0 = scroll arriba, < 0 = scroll abajo
         if (e.Delta.Y > 0)
-            _mpv?.SetVolume01(Math.Clamp(VolumeSlider.Value + 0.05, 0, 1));
+            _player.VolumeDelta(0.05);
         else if (e.Delta.Y < 0)
-            _mpv?.SetVolume01(Math.Clamp(VolumeSlider.Value - 0.05, 0, 1));
+            _player.VolumeDelta(-0.05);
         e.Handled = true;
     }
 
@@ -262,21 +263,5 @@ public partial class PlayerView : UserControl
     {
         FullScreenIcon.IsVisible = isFullScreen;
         NoFullScreenIcon.IsVisible = !isFullScreen;
-    }
-
-    public void PlayPause()
-    {
-        if (_mpv.CurrentPath == null) return;
-        if (_mpv.EofReached) { _mpv.SeekAbsolute(0); _mpv.Play(); }
-        else _mpv.PlayPause();
-        ShowControls();
-    }
-
-    public void Next() => _playlist.Advance();
-
-    public void Preview()
-    {
-        if (_mpv.PositionSec > 5) { _mpv.SeekAbsolute(0); return; }
-        _playlist.GoPrev();
     }
 }

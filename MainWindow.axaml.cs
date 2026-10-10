@@ -9,7 +9,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using MediaPlayer.Services;
-using SharpUtils.Linux;
 
 namespace MediaPlayer;
 
@@ -21,6 +20,7 @@ public partial class MainWindow : Window
 {
     private PlaylistService _playlist => App.Playlist;
     private MpvPlayer _mpv => App.Mpv;
+    private Player _player => App.Player;
 
     private readonly KeyBindings _keys = new KeyBindings();
 
@@ -28,42 +28,29 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // --- MPVPLAYER-MPRIS EVENTS --- //
-        _mpv.MPRISNextRequested += PlayerView.Next;
-        _mpv.MPRISPrevRequested += PlayerView.Preview;
+        // --- MPVPLAYER-MPRIS EVENTS (UI) --- //
         _mpv.MPRISQuitRequested += Close;
         _mpv.MPRISRaiseRequested += () => { WindowState = WindowState.Normal; Activate(); };
-        _mpv.MPRISVolumeChanged += _mpv.SetVolume01;
-        _mpv.MPRISShuffleChanged += s => PlaylistView.ToggleShuffle(s);
 
-        // --- PLAYLIST EVENTS --- //
-        _playlist.ShuffleChanged += _ => UpdateMprisState();
-        _playlist.LoopModeChanged += _ => UpdateMprisState();
-        _playlist.CurrentChanged += _ => UpdateMprisState();
+        // --- PLAYLIST EVENTS (UI) --- //
         PlaylistView.CloseRequested += async () => await HidePlaylist();
         PlaylistView.ShowOverlay += PlayerView.ShowOverlay;
         PlayerView.ToggleFullScreen += ToggleFullscreen;
 
         // --- KEYBINDINGS --- //
-        _keys.TogglePlayPause = PlayerView.PlayPause;
-        _keys.SeekRelative = sec => _mpv?.SeekRelative(sec);
-        _keys.FrameStep = () => _mpv?.FrameStep();
-        _keys.FrameBackStep = () => _mpv?.FrameBackStep();
-        _keys.VolumeDelta = delta => _mpv?.SetVolume01(Math.Clamp(_mpv.Volume + delta, 0, 1));
-        _keys.ToggleMute = () => _mpv?.SetMute(!_mpv.IsMuted);
-        _keys.Next = PlayerView.Next;
-        _keys.Prev = PlayerView.Preview;
-        _keys.CycleLoopMode = _playlist.CycleLoopMode;
-        _keys.ToggleShuffle += () => PlaylistView.ToggleShuffle();
+        _keys.TogglePlayPause = _player.PlayPause;
+        _keys.SeekRelative = _player.SeekRelative;
+        _keys.FrameStep = _player.FrameStep;
+        _keys.FrameBackStep = _player.FrameBackStep;
+        _keys.VolumeDelta = _player.VolumeDelta;
+        _keys.ToggleMute = _player.ToggleMute;
+        _keys.Next = _player.Next;
+        _keys.Prev = _player.Preview;
+        _keys.CycleLoopMode = _player.CycleLoopMode;
+        _keys.ToggleShuffle += _player.ToggleShuffle;
         _keys.ToggleFullscreen = ToggleFullscreen;
         _keys.ExitFullscreen = () => { if (WindowState == WindowState.FullScreen) WindowState = WindowState.Normal; };
-        _keys.NextAudioTrack = () =>
-        {
-            if (_mpv.AudioTracks.Count == 0) return;
-            var list = _mpv.AudioTracks;
-            int idx = list.ToList().FindIndex(t => t.IsSelected);
-            _mpv.SetAudioTrack(list[(idx + 1) % list.Count].Id);
-        };
+        _keys.NextAudioTrack = _player.NextAudioTrack;
         _keys.TogglePlaylist = async () =>
         {
             if (PlaylistGrid.IsVisible)
@@ -83,21 +70,6 @@ public partial class MainWindow : Window
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
-    private void UpdateMprisState()
-    {
-        // Actualizar capabilities de MPRIS según el estado de la Playlist.
-        bool hasNext = _playlist.Current != null && _playlist.PeekNext() is var nt && nt >= 0 && nt != _playlist.CurrentIndex;
-        bool hasPrev = _playlist.Current != null && _playlist.PeekPrev() is var pv && pv >= 0 && pv != _playlist.CurrentIndex;
-
-        MprisService.capabilities.CanGoNext = hasNext;
-        MprisService.capabilities.CanGoPrevious = hasPrev;
-        MprisService.capabilities.CanPlay = _playlist.Current != null;
-        MprisService.capabilities.CanPause = _playlist.Current != null;
-        MprisService.capabilities.CanSeek = _playlist.Current != null;
-        MprisService.Update();
-    }
-
-    private static string[] filesFilter = [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
     private async Task OpenFilePickerAsync()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -106,16 +78,13 @@ public partial class MainWindow : Window
             AllowMultiple = true,
             FileTypeFilter =
             [
-                new FilePickerFileType("Videos"){ Patterns = Array.ConvertAll(filesFilter, f => $"*{f}") },
+                new FilePickerFileType("Videos"){ Patterns = Array.ConvertAll(MediaLoader.SupportedExtensions, f => $"*{f}") },
                 new FilePickerFileType("Todos") { Patterns = ["*.*"] }
             ]
         });
 
         if (files == null || files.Count == 0) return;
-        var filePath = files.Select(f => f.Path.LocalPath).Where(IsMediaFile);
-        if (files == null || filePath.Count() == 0) return;
-
-        _playlist.Add(filePath);
+        MediaLoader.LoadFiles(files.Select(f => f.Path.LocalPath));
     }
 
     private async Task OpenFolderPickerAsync()
@@ -131,10 +100,7 @@ public partial class MainWindow : Window
         var path = folders[0].Path.LocalPath;
         if (!Directory.Exists(path)) return;
 
-        var files = LinuxKRL.GetReadableFiles(path, IsMediaFile).OrderBy(f => f);
-
-        if (files.Count() == 0) return;
-        _playlist.AddNew(files);
+        MediaLoader.LoadPaths(path);
     }
 
     private void ToggleFullscreen()
@@ -173,18 +139,12 @@ public partial class MainWindow : Window
         if (files == null || files.Length == 0) return;
 
         var paths = files
-            .Where(f => IsMediaFile(f.Path.LocalPath))
+            .Where(f => MediaLoader.IsMediaFile(f.Path.LocalPath))
             .Select(f => f.Path.LocalPath)
             .ToList();
         if (paths.Count == 0) return;
 
         _playlist.Add(paths);
-    }
-
-    public static bool IsMediaFile(string path)
-    {
-        string ext = Path.GetExtension(path).ToLowerInvariant();
-        return Array.IndexOf(filesFilter, ext) >= 0;
     }
 
     private void ShowPlaylist()

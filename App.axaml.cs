@@ -13,6 +13,7 @@ public partial class App : Application
 {
     public static MpvPlayer Mpv { get; private set; }
     public static PlaylistService Playlist { get; private set; }
+    public static Player Player { get; private set; }
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -40,6 +41,11 @@ public partial class App : Application
         Mpv.Pause();
         Mpv.ErrorOccurred += Console.WriteLine;
 
-        Playlist = new PlaylistService(args);
+        Playlist = new PlaylistService();
+
+        if (args != null && args.Length > 0)
+            MediaLoader.LoadPaths(args);
+
+        Player = new Player();
     }
 }

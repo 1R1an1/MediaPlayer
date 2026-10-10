@@ -17,6 +17,7 @@ namespace MediaPlayer.Views;
 public partial class PlaylistView : UserControl
 {
     private PlaylistService _playlist => App.Playlist;
+    private Player _player => App.Player;
     public event Action CloseRequested;
     private Color? MutedColor = Application.Current.FindResource("MutedColor") as Color?;
     private Color? AccentColor = Application.Current.FindResource("AccentColor") as Color?;
@@ -27,17 +28,14 @@ public partial class PlaylistView : UserControl
         InitializeComponent();
         CloseBtn.Click += (_, _) => CloseRequested?.Invoke();
         ClearBtn.Click += (_, _) => _playlist.Clear();
-        ShuffleBtn.Click += (_, _) => ToggleShuffle();
+        ShuffleBtn.Click += (_, _) => { _player.ToggleShuffle(); UpdateShuffle(_playlist.Shuffle); };
+        _playlist.ShuffleChanged += UpdateShuffle;
         Sortable.Avalonia.Sortable.SetUpdateCommand(List, new RelayCommand<SortableUpdateEventArgs>((e) => { _playlist.Move(e.OldIndex, e.NewIndex); }));
     }
 
-    public async void ToggleShuffle(bool? enable = null)
+    private async void UpdateShuffle(bool enable)
     {
-        Dispatcher.UIThread.Invoke(() =>
-        {
-            _playlist.Shuffle = enable ?? !_playlist.Shuffle;
-            ShuffleIcon.CurrentColor = _playlist.Shuffle ? AccentColor : MutedColor;
-        });
+        Dispatcher.UIThread.Invoke(() => ShuffleIcon.CurrentColor = enable ? AccentColor : MutedColor);
 
         if (ShowOverlay != null)
             await ShowOverlay(ShuffleIcon);
