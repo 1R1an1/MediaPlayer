@@ -99,6 +99,8 @@ public class PlaylistService
             _items.Add(item);
         }
         Probe();
+        if (_items.Count > 0)
+            SetCurrent(0);
     }
 
     public void Add(params IEnumerable<string> paths)

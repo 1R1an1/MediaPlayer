@@ -426,6 +426,11 @@ public class MpvPlayer : MprisSource
 
     // Control API
     public void LoadFile(string path) { if (IsInitialized && path != CurrentPath) Command("loadfile", path, "replace"); }
+    public void Reload()
+    {
+        if (!IsInitialized || CurrentPath == null) return;
+        Command("loadfile", CurrentPath, "replace");
+    }
     public void PlayPause() => Command("cycle", "pause");
     public void Play() => SetPropertyString("pause", "no");
     public void Pause() => SetPropertyString("pause", "yes");

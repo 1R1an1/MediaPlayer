@@ -53,6 +53,7 @@ public class MpvGlControl : OpenGlControlBase
     private readonly AutoResetEvent _renderSignal = new(false);
 
     private int _lastW, _lastH;
+    public event Action RenderContextReady;
 
     public void SetMpvHandle(IntPtr mpvHandle)
     {
@@ -323,6 +324,8 @@ public class MpvGlControl : OpenGlControlBase
 
             _updateCb = new MpvRenderUpdateCallback(OnMpvUpdate);
             mpv_render_context_set_update_callback(_renderCtx, _updateCb, IntPtr.Zero);
+
+            RenderContextReady?.Invoke();
         }
         finally
         {

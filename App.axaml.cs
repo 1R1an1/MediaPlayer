@@ -37,17 +37,9 @@ public partial class App : Application
             Environment.Exit(1);
 
         Mpv.Init();
+        Mpv.Pause();
         Mpv.ErrorOccurred += Console.WriteLine;
 
         Playlist = new PlaylistService(args);
-
-        if (Playlist.Items.Count > 0)
-        {
-            ThreadPool.QueueUserWorkItem(_ =>
-            {
-                Thread.Sleep(750); // 750 o 1000, depende, si no se ve el video cambiar a 1000
-                Playlist.SetCurrent(0);
-            });
-        }
     }
 }

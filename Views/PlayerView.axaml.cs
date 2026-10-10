@@ -37,6 +37,8 @@ public partial class PlayerView : UserControl
     public PlayerView()
     {
         InitializeComponent();
+        VideoHost.IsVisible = _playlist.Items.Count > 0;
+        VideoHost.RenderContextReady += _mpv.Reload;
         VideoHost.SetMpvHandle(_mpv.MpvHandle);
 
         // --- UI --- //
@@ -84,7 +86,6 @@ public partial class PlayerView : UserControl
         ShowControls();
 
         VolumeSlider.Value = _mpv.Volume;
-        _mpv.Pause();
     }
 
     private void ShowControls()
