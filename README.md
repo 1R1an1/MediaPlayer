@@ -42,7 +42,23 @@ Controles en tema oscuro sobre el reproductor, integración con el escritorio v�
 
 ## Instalación
 
-El repositorio incluye SharpUtils y TermFlow.Net como submódulos.
+```bash
+curl -fsSL https://raw.githubusercontent.com/1R1an1/MediaPlayer/master/setup | bash
+```
+
+Uso:
+
+```bash
+mp                              # Abre la GUI sin archivos
+mp video.mkv ~/carpeta          # Abre la GUI con uno o más archivos/carpetas
+mp --nogui video.mkv            # Fuerza la TUI en lugar de la GUI
+```
+
+La TUI también se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
+
+<details><summary>Instalación manual</summary>
+
+El repositorio incluye [SharpUtils](https://github.com/1R1an1/SharpUtils) y [TermFlow.Net](https://github.com/1R1an1/TermFlow.Net) como submódulos.
 
 Clonar con `--recursive`:
 
@@ -62,19 +78,11 @@ git submodule update --init --recursive
 Compilar e instalar:
 
 ```bash
-dotnet publish -c Release -r linux-x64 --self-contained true
+dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true
 sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr/local/bin/mp
 ```
 
-Uso:
-
-```bash
-mp                              # Abre la GUI sin archivos
-mp video.mkv ~/carpeta          # Abre la GUI con uno o más archivos/carpetas
-mp --nogui video.mkv            # Fuerza la TUI en lugar de la GUI
-```
-
-La TUI también se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
+</details>
 
 ---
 

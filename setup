@@ -1,0 +1,96 @@
+#!/bin/bash
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 1R1an1
+#
+# Instala MediaPlayer desde el repo de git, sin necesidad de clonar a mano.
+
+set -e
+
+REPO_URL="https://github.com/1R1an1/MediaPlayer.git"
+APP_NAME="mediaplayer"
+BIN_NAME="mp"
+INSTALL_DIR="/opt/$APP_NAME"
+BIN_LINK="/usr/local/bin/$BIN_NAME"
+DESKTOP_FILE="/usr/share/applications/$APP_NAME.desktop"
+ICON_DIR="/usr/share/icons/hicolor/scalable/apps"
+
+# Dependencias del sistema
+DEPS=("git" "dotnet" "ffmpeg" "ffprobe")
+
+err() { echo -e "\033[31m[ERROR]\033[0m $*" >&2; exit 1; }
+info() { echo -e "\033[36m[INFO]\033[0m $*"; }
+
+# Verificar que tenemos sudo
+[[ $EUID -ne 0 ]] && SUDO="sudo" || SUDO=""
+
+# Verificar dependencias
+info "Verificando dependencias del sistema..."
+for dep in "${DEPS[@]}"; do
+    command -v "$dep" >/dev/null 2>&1 || err "Falta '$dep'. Instalalo antes de correr este script."
+done
+
+# libmpv: verificar via ldconfig
+$SUDO ldconfig -p 2>/dev/null | grep -q "libmpv.so.2" || err "Falta libmpv2. Instalala antes de correr este script:
+  Arch/CachyOS:   sudo pacman -S mpv
+  Debian/Ubuntu:  sudo apt install libmpv2
+  Fedora:         sudo dnf install mpv-libs"
+
+# Verificar versión de .NET SDK
+info "Verificando .NET SDK..."
+DOTNET_VERSION=$(dotnet --version 2>/dev/null || echo "0")
+[[ "$DOTNET_VERSION" =~ ^10 ]] || err "Se requiere .NET SDK 10.0+. Tenés: $DOTNET_VERSION"
+
+# Crear dir temporal
+TMP_DIR=$(mktemp -d /tmp/$APP_NAME-setup.XXXXXX)
+trap 'rm -rf "$TMP_DIR"' EXIT
+info "Clonando repo en $TMP_DIR..."
+
+# Clonar con submódulos
+git clone --recursive "$REPO_URL" "$TMP_DIR/$APP_NAME"
+cd "$TMP_DIR/$APP_NAME"
+
+# Publicar
+info "Compilando..."
+dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true
+PUBLISH_DIR="$TMP_DIR/$APP_NAME/bin/Release/net10.0/linux-x64/publish"
+
+[[ -f "$PUBLISH_DIR/MediaPlayer" ]] || err "No se encontró el binario compilado en $PUBLISH_DIR"
+
+# Instalar
+info "Instalando en $INSTALL_DIR..."
+$SUDO rm -rf "$INSTALL_DIR"
+$SUDO mkdir -p "$INSTALL_DIR"
+$SUDO cp -r "$PUBLISH_DIR"/* "$INSTALL_DIR/"
+$SUDO chmod +x "$INSTALL_DIR/MediaPlayer"
+
+# Symlink del comando
+info "Creando symlink $BIN_LINK → $INSTALL_DIR/MediaPlayer..."
+$SUDO ln -sf "$INSTALL_DIR/MediaPlayer" "$BIN_LINK"
+
+# Ícono
+info "Instalando ícono..."
+$SUDO mkdir -p "$ICON_DIR"
+$SUDO cp -f Svgs/Icon.svg "$ICON_DIR/$APP_NAME.svg"
+
+# .desktop
+info "Creando $DESKTOP_FILE..."
+$SUDO tee "$DESKTOP_FILE" >/dev/null <<EOF
+[Desktop Entry]
+Name=Media Player
+Comment=Reproductor de video basado en mpv
+Exec=$BIN_LINK %U
+Icon=$APP_NAME
+Terminal=false
+Type=Application
+Categories=AudioVideo;Video;Player;
+MimeType=video/mp4;video/x-matroska;video/webm;video/x-msvideo;video/quicktime;video/x-flv;video/x-ms-wmv;video/mpeg;audio/mpeg;audio/flac;
+EOF
+
+# Actualizar caches de desktop
+$SUDO update-desktop-database /usr/share/applications 2>/dev/null || true
+$SUDO gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
+
+info "Listo."
+info ""
+info "Instalado correctamente. Usalo con el comando \`mp\` o desde el menú de aplicaciones."
+info "Si no aparece en el menú, reiniciá la sesión."
