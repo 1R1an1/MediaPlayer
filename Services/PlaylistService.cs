@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using MediaPlayer.Models;
-using SharpUtils.Linux;
 
 namespace MediaPlayer.Services;
 
@@ -66,6 +65,32 @@ public class PlaylistService
             _mpv.Shuffle = value;
             ShuffleChanged?.Invoke(value);
             ApplyShuffle();
+        }
+    }
+
+    public PlaylistState PlaylistState
+    {
+        get => new() { Created = true, ItemsOrder = _items.Select(item => _originalItems.IndexOf(item)), CurrentIndex = _currentIndex, LoopMode = _loopMode, OriginalPaths = _originalItems.Select(i => i.Path), Shuffle = _shuffle };
+        set
+        {
+            if (value == null || !value.Created || value.OriginalPaths == null || value.ItemsOrder == null) return;
+
+            _originalItems.Clear();
+            _items.Clear();
+
+            foreach (string p in value.OriginalPaths)
+                _originalItems.Add(new PlaylistItem(p));
+
+            foreach (int i in value.ItemsOrder)
+                _items.Add(_originalItems[i]);
+
+            LoopMode = value.LoopMode;
+            _shuffle = value.Shuffle;
+            _mpv.Shuffle = value.Shuffle;
+            ShuffleChanged?.Invoke(_shuffle);
+
+            Probe();
+            SetCurrent(value.CurrentIndex);
         }
     }
 

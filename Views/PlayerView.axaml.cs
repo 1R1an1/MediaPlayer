@@ -89,6 +89,9 @@ public partial class PlayerView : UserControl
         ShowControls();
 
         VolumeSlider.Value = _mpv.Volume;
+        SeekBar.Value = _mpv.PositionSec;
+        if (_playlist.LoopMode != LoopMode.None)
+            SetLoopModeBtn(_playlist.LoopMode);
     }
 
     private void ShowControls()

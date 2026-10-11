@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using MediaPlayer.Models;
 using MediaPlayer.Native;
 using SharpUtils.Linux;
@@ -177,10 +176,6 @@ public class MpvPlayer : MprisSource
 
             case LibMpv.MPV_EVENT_FILE_LOADED:
                 LoadTrackList();
-                DurationSec = GetDoubleProperty("duration");
-                PositionSec = GetDoubleProperty("time-pos");
-                DurationChanged?.Invoke(DurationSec);
-                PositionChanged?.Invoke(PositionSec);
                 break;
 
             case LibMpv.MPV_EVENT_END_FILE:
@@ -429,7 +424,7 @@ public class MpvPlayer : MprisSource
     public void Reload()
     {
         if (!IsInitialized || CurrentPath == null) return;
-        Command("loadfile", CurrentPath, "replace");
+        Command("loadfile", CurrentPath, "replace", "-1", $"start={PositionSec.ToString(CultureInfo.InvariantCulture)}");
     }
     public void PlayPause() => Command("cycle", "pause");
     public void Play() => SetPropertyString("pause", "no");
@@ -441,10 +436,10 @@ public class MpvPlayer : MprisSource
     public void SetAudioTrack(int id) => SetIntProperty("aid", id);
 
     public void SeekAbsolute(double seconds)
-        => Command("seek", seconds.ToString("F3", CultureInfo.InvariantCulture), "absolute");
+        => Command("seek", seconds.ToString(CultureInfo.InvariantCulture), "absolute");
 
     public void SeekRelative(double delta)
-        => Command("seek", delta.ToString("F3", CultureInfo.InvariantCulture), "relative");
+        => Command("seek", delta.ToString(CultureInfo.InvariantCulture), "relative");
 
     public void FrameStep()
     {

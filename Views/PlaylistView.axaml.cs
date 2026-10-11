@@ -31,6 +31,9 @@ public partial class PlaylistView : UserControl
         ShuffleBtn.Click += (_, _) => { _player.ToggleShuffle(); UpdateShuffle(_playlist.Shuffle); };
         _playlist.ShuffleChanged += UpdateShuffle;
         Sortable.Avalonia.Sortable.SetUpdateCommand(List, new RelayCommand<SortableUpdateEventArgs>((e) => { _playlist.Move(e.OldIndex, e.NewIndex); }));
+
+        if (_playlist.Shuffle == true)
+            UpdateShuffle(_playlist.Shuffle);
     }
 
     private async void UpdateShuffle(bool enable)

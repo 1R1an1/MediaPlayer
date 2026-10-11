@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (c) 2026 1R1an1 */
+using System;
 using System.Linq;
+using MediaPlayer.Models;
 using SharpUtils.Linux;
 
 namespace MediaPlayer.Services;
@@ -10,6 +12,26 @@ public class Player
 {
     private MpvPlayer _mpv => App.Mpv;
     private PlaylistService _playlist => App.Playlist;
+
+    public PlayerState PlayerState
+    {
+        get => new() { Created = true, Volume = _mpv.Volume, PositionSec = _mpv.PositionSec };
+        set
+        {
+            if (value == null || !value.Created) return;
+            Action<double> pos = null;
+            pos = p =>
+            {
+                if (p == 0)
+                    _mpv.PositionSec = value.PositionSec;
+                if (_mpv.PositionSec == value.PositionSec)
+                    _mpv.PositionChanged -= pos;
+            };
+            _mpv.PositionChanged += pos;
+            _mpv.SeekAbsolute(value.PositionSec);
+            _mpv.SetVolume01(value.Volume);
+        }
+    }
 
     public Player()
     {
