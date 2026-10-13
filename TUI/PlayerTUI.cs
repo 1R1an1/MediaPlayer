@@ -491,10 +491,10 @@ public class PlayerTUI
     private static string FormatPlaylistLine(string title, string dur, bool isCurrent, bool isCursor, int w)
     {
         int durLen = dur.Length + 1;
-        string titleTrim = TruncateVisible(title, w - durLen - 4);
+        string titleTrim = TruncateVisible(title, w - durLen - 5);
         string titleCol = isCursor ? $"{ThemeColors.Selector}{AnsiColor.Bold}{titleTrim}{ThemeColors.Reset}" : titleTrim;
         string line = $"{(isCurrent ? $"{ThemeColors.Success}▶{ThemeColors.Reset} " : "  ")}{(isCursor ? $"{ThemeColors.Selector}{ConsoleGlyphs.Indicator}{ThemeColors.Reset} " : "  ")}{titleCol}";
-        int pad = w - line.GetVisualLength() - durLen;
+        int pad = w - line.GetRealWidth() - durLen;
         if (pad > 0) line += new string(' ', pad);
         return line + $"{ThemeColors.Dim}{dur}{ThemeColors.Reset}";
     }
@@ -614,8 +614,8 @@ public class PlayerTUI
     private static string TruncateVisible(string s, int max)
     {
         if (string.IsNullOrWhiteSpace(s)) return "";
-        if (s.Length <= max) return s;
+        if (s.GetRealWidth() <= max) return s;
         if (max <= 1) return "…";
-        return s[..(max - 1)] + "…";
+        return s.Truncate(max - 1) + "…";
     }
 }
