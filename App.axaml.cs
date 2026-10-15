@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (c) 2026 1R1an1 */
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,6 +48,7 @@ public partial class App : Application
         if (!Directory.Exists(BASEPATH))
             Directory.CreateDirectory(BASEPATH);
         Settings = JsonUtils.LoadJson<AppSettings>(SETTINGSPATH);
+        Settings.saveLastState = CheckLockFile() ? Settings.saveLastState : false;
 
         lastState = Settings.loadLastState ? JsonUtils.LoadJson<LastState>(LASTSTATEPATH) : new();
 
@@ -55,20 +57,23 @@ public partial class App : Application
             while (Settings.saveLastState)
             {
                 await Task.Delay(60_000);
-                lastState.player = Player.PlayerState;
-                lastState.playlist = Playlist.PlaylistState;
+                lastState.Player = Player.PlayerState;
+                lastState.Playlist = Playlist.PlaylistState;
                 JsonUtils.SaveJson(lastState, LASTSTATEPATH);
             }
         });
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
+            DeleteLockFile();
             if (!Settings.saveLastState) return;
 
-            lastState.player = Player.PlayerState;
-            lastState.playlist = Playlist.PlaylistState;
+            lastState.Player = Player.PlayerState;
+            lastState.Playlist = Playlist.PlaylistState;
             JsonUtils.SaveJson(lastState, LASTSTATEPATH);
         };
+        AppDomain.CurrentDomain.UnhandledException += (_, _) => DeleteLockFile();
+        Console.CancelKeyPress += (_, _) => DeleteLockFile();
 
         Mpv = new MpvPlayer(out bool isMprisSuccess);
         if (!isMprisSuccess)
@@ -78,11 +83,38 @@ public partial class App : Application
         Mpv.Pause();
         Mpv.ErrorOccurred += Console.WriteLine;
 
-        Playlist = new PlaylistService() { PlaylistState = lastState?.playlist };
+        Playlist = new PlaylistService() { PlaylistState = lastState.Playlist };
 
         if (args != null && args.Length > 0)
             MediaLoader.LoadPaths(args);
 
-        Player = new Player() { PlayerState = lastState?.player };
+        Player = new Player() { PlayerState = lastState.Player };
+    }
+
+    /// <summary>
+    /// Verifica si el archivo lock esta creado, de lo contrario lo crea
+    /// </summary>
+    /// <returns>Devuelve true si el archivo fue creado, de lo contrario devuelve false</returns>
+    private static bool CheckLockFile()
+    {
+        if (File.Exists("/tmp/mediaplayer/mp.lock")) return false;
+
+        if (!Directory.Exists("/tmp/mediaplayer"))
+            Directory.CreateDirectory("/tmp/mediaplayer");
+
+        Span<byte> bytes = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(bytes, Environment.ProcessId);
+        File.WriteAllBytes("/tmp/mediaplayer/mp.lock", bytes);
+        return true;
+    }
+
+    private static void DeleteLockFile()
+    {
+        if (!Directory.Exists("/tmp/mediaplayer") || !File.Exists("/tmp/mediaplayer/mp.lock")) return;
+
+        byte[] bytes = File.ReadAllBytes("/tmp/mediaplayer/mp.lock");
+        int prosId = BinaryPrimitives.ReadInt32LittleEndian(bytes);
+        if (prosId == Environment.ProcessId)
+            File.Delete("/tmp/mediaplayer/mp.lock");
     }
 }

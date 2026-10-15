@@ -18,7 +18,7 @@ public class Player
         get => new() { Created = true, Volume = _mpv.Volume, PositionSec = _mpv.PositionSec };
         set
         {
-            if (value == null || !value.Created) return;
+            if (!value.Created) return;
             Action<double> pos = null;
             pos = p =>
             {
