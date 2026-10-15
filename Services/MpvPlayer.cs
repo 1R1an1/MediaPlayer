@@ -216,6 +216,7 @@ public class MpvPlayer : MprisSource
                 {
                     DurationSec = Marshal.PtrToStructure<double>(prop.data);
                     DurationChanged?.Invoke(DurationSec);
+                    MprisService.Update();
                 }
                 break;
 
