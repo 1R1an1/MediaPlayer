@@ -45,6 +45,27 @@ public partial class App : Application
 
     public static void Init(string[] args)
     {
+        bool haveArgs = args != null && args.Length > 0;
+        StartDiskThings(haveArgs);
+
+        Mpv = new MpvPlayer(out bool isMprisSuccess);
+        if (!isMprisSuccess)
+            Environment.Exit(1);
+
+        Mpv.Init();
+        Mpv.Pause();
+        Mpv.ErrorOccurred += Console.WriteLine;
+
+        Playlist = new PlaylistService() { PlaylistState = lastState.Playlist };
+
+        if (haveArgs)
+            MediaLoader.LoadPaths(args);
+
+        Player = new Player() { PlayerState = lastState.Player };
+    }
+
+    private static void StartDiskThings(bool haveArgs)
+    {
         if (!Directory.Exists(BASEPATH))
             Directory.CreateDirectory(BASEPATH);
         Settings = JsonUtils.LoadJson<AppSettings>(SETTINGSPATH);
@@ -75,20 +96,15 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (_, _) => DeleteLockFile();
         Console.CancelKeyPress += (_, _) => DeleteLockFile();
 
-        Mpv = new MpvPlayer(out bool isMprisSuccess);
-        if (!isMprisSuccess)
-            Environment.Exit(1);
+        if (haveArgs)
+        {
+            //pM = playerModified
+            var pM = lastState.Player;
+            pM.PositionSec = 0;
 
-        Mpv.Init();
-        Mpv.Pause();
-        Mpv.ErrorOccurred += Console.WriteLine;
-
-        Playlist = new PlaylistService() { PlaylistState = lastState.Playlist };
-
-        if (args != null && args.Length > 0)
-            MediaLoader.LoadPaths(args);
-
-        Player = new Player() { PlayerState = lastState.Player };
+            lastState.Playlist = new();
+            lastState.Player = pM;
+        }
     }
 
     /// <summary>
