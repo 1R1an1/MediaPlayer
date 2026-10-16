@@ -17,7 +17,7 @@ Copyright (c) 2026 1R1an1 -->
         <!-- Playlist lateral -->
         <Grid x:Name="PlaylistGrid" Background="#a000"
               VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
-              Opacity="0" IsVisible="False" ColumnDefinitions="*,5*,*" RowDefinitions="*,5*,*">
+              Opacity="0" IsVisible="True" ColumnDefinitions="*,5*,*" RowDefinitions="*,5*,*">
             <Grid.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.25" />

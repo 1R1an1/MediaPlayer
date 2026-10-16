@@ -68,6 +68,8 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnKeyDownTunnel, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
+
+        _ = HidePlaylist();
     }
 
     private async Task OpenFilePickerAsync()
