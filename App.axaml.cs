@@ -2,7 +2,9 @@
  * Copyright (c) 2026 1R1an1 */
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -118,7 +120,15 @@ public partial class App : Application
     /// <returns>Devuelve true si el archivo fue creado, de lo contrario devuelve false</returns>
     private static bool CheckLockFile()
     {
-        if (File.Exists("/tmp/mediaplayer/mp.lock")) return false;
+        if (File.Exists("/tmp/mediaplayer/mp.lock"))
+        {
+            byte[] bytess = File.ReadAllBytes("/tmp/mediaplayer/mp.lock");
+            int prosId = BinaryPrimitives.ReadInt32LittleEndian(bytess);
+            if (Process.GetProcesses().Any(p => p.Id == prosId))
+                return false;
+            else
+                File.Delete("/tmp/mediaplayer/mp.lock");
+        }
 
         if (!Directory.Exists("/tmp/mediaplayer"))
             Directory.CreateDirectory("/tmp/mediaplayer");
