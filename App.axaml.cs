@@ -24,6 +24,7 @@ public partial class App : Application
     public static readonly string BASEPATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MediaPlayer");
     public static readonly string SETTINGSPATH = Path.Combine(BASEPATH, "settings.json");
     public static readonly string LASTSTATEPATH = Path.Combine(BASEPATH, "last-state.json");
+    public static readonly string LASTSTATEOLDPATH = Path.Combine(BASEPATH, "last-state_old.json");
     private static LastState lastState;
 
     public override void Initialize()
@@ -69,29 +70,24 @@ public partial class App : Application
         if (!Directory.Exists(BASEPATH))
             Directory.CreateDirectory(BASEPATH);
         Settings = JsonUtils.LoadJson<AppSettings>(SETTINGSPATH);
-        Settings.saveLastState = CheckLockFile() ? Settings.saveLastState : false;
+        Settings.canSave = CheckLockFile();
 
         lastState = Settings.loadLastState ? JsonUtils.LoadJson<LastState>(LASTSTATEPATH) : new();
 
         ThreadPool.QueueUserWorkItem(async _ =>
         {
-            while (Settings.saveLastState)
+            while (Settings.canSave && Settings.autoSaveLastState)
             {
                 await Task.Delay(60_000);
-                lastState.Player = Player.PlayerState;
-                lastState.Playlist = Playlist.PlaylistState;
-                JsonUtils.SaveJson(lastState, LASTSTATEPATH);
+                SaveJson();
             }
         });
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) =>
         {
             DeleteLockFile();
-            if (!Settings.saveLastState) return;
-
-            lastState.Player = Player.PlayerState;
-            lastState.Playlist = Playlist.PlaylistState;
-            JsonUtils.SaveJson(lastState, LASTSTATEPATH);
+            if (!Settings.canSave || !Settings.saveOnExitLastState) return;
+            SaveJson();
         };
         AppDomain.CurrentDomain.UnhandledException += (_, _) => DeleteLockFile();
         Console.CancelKeyPress += (_, _) => DeleteLockFile();
@@ -105,6 +101,15 @@ public partial class App : Application
             lastState.Playlist = new();
             lastState.Player = pM;
         }
+    }
+
+    private static void SaveJson()
+    {
+        lastState.Player = Player.PlayerState;
+        lastState.Playlist = Playlist.PlaylistState;
+        if (File.Exists(LASTSTATEPATH))
+            File.Move(LASTSTATEPATH, LASTSTATEOLDPATH, true);
+        JsonUtils.SaveJson(lastState, LASTSTATEPATH);
     }
 
     /// <summary>
