@@ -3,9 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using MediaPlayer.Models;
@@ -261,83 +258,10 @@ public class PlaylistService
         var items = _originalItems[start..(end == -1 ? _originalItems.Count : end)];
         _ = Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount + 2 }, async (item, _) =>
         {
-            try
-            {
-                // Duración con ffprobe
-                var probe = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "ffprobe",
-                        Arguments = $"-v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{item.Path}\"",
-                        RedirectStandardOutput = true,
-                        RedirectStandardInput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    }
-                };
-                probe.Start();
-                string durStr = (await probe.StandardOutput.ReadToEndAsync()).Trim();
-                await probe.WaitForExitAsync();
-
-                if (double.TryParse(durStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double dur))
-                    item.Duration = TimeSpan.FromSeconds(dur);
-
-                // Artista con ffprobe
-                var artistProbe = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "ffprobe",
-                        Arguments = $"-v quiet -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 \"{item.Path}\"",
-                        RedirectStandardOutput = true,
-                        RedirectStandardInput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    }
-                };
-                artistProbe.Start();
-                string artistStr = (await artistProbe.StandardOutput.ReadToEndAsync()).Trim();
-                await artistProbe.WaitForExitAsync();
-                item.Artist = artistStr;
-
-                // Cover con ffmpeg
-                string tempDir = Directory.CreateTempSubdirectory("mpv_pl_").FullName;
-                string ext = Path.GetExtension(item.Path).ToLowerInvariant();
-
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "ffmpeg",
-                    UseShellExecute = false,
-                    RedirectStandardInput = true,
-                    CreateNoWindow = true,
-                    WorkingDirectory = tempDir,
-                };
-
-                string coverFile;
-                if (ext == ".mkv")
-                {
-                    // MKV: cover embebido como attachment
-                    psi.Arguments = $"-dump_attachment:t \"\" -i \"{item.Path}\" -y -loglevel quiet";
-                    coverFile = Path.Combine(tempDir, "cover.webp");
-                }
-                else
-                {
-                    // MP3/FLAC/OGG/M4A: cover embebido como stream de video
-                    psi.Arguments = $"-i \"{item.Path}\" -map 0:v:0 -c:v copy -y -loglevel quiet cover.jpg";
-                    coverFile = Path.Combine(tempDir, "cover.jpg");
-                }
-
-                var extract = new Process { StartInfo = psi };
-                extract.Start();
-                await extract.WaitForExitAsync();
-
-                if (File.Exists(coverFile))
-                    item.CoverBytes = await File.ReadAllBytesAsync(coverFile);
-
-                try { Directory.Delete(tempDir, true); } catch { }
-            }
-            catch { }
+            var result = await MediaUtils.Probe(item.Path, ProbeMode.AllWithoutHash);
+            item.Artist = result.Artist;
+            item.Duration = result.Duration;
+            item.CoverBytes = result.CoverBytes;
         });
     }
 

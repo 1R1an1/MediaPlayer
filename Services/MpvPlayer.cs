@@ -2,11 +2,8 @@
  * Copyright (c) 2026 1R1an1 */
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using MediaPlayer.Models;
@@ -325,72 +322,9 @@ public class MpvPlayer : MprisSource
 
     private async Task LoadCover()
     {
-        if (string.IsNullOrEmpty(CurrentPath) || !File.Exists(CurrentPath))
-        {
-            CoverBytes = null;
-            CoverHashHex = string.Empty;
-            return;
-        }
-
-        try
-        {
-            // ffmpeg -dump_attachment:t "" vuelca todos los attachments a la carpeta actual.
-            // Usamos una carpeta temporal para no llenar el directorio del usuario.
-            string tempDir = Directory.CreateTempSubdirectory("mpv_cover_").FullName;
-            string ext = Path.GetExtension(CurrentPath).ToLowerInvariant();
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = "ffmpeg",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardInput = true,
-                WorkingDirectory = tempDir,
-            };
-
-            string coverFile;
-            if (ext == ".mkv")
-            {
-                // MKV: cover embebido como attachment
-                psi.Arguments = $"-dump_attachment:t \"\" -i \"{CurrentPath}\" -y -loglevel quiet";
-                coverFile = Path.Combine(tempDir, "cover.webp");
-            }
-            else
-            {
-                // MP3/FLAC/OGG/M4A: cover embebido como stream de video
-                psi.Arguments = $"-i \"{CurrentPath}\" -map 0:v:0 -c:v copy -y -loglevel quiet cover.jpg";
-                coverFile = Path.Combine(tempDir, "cover.jpg");
-            }
-
-            var extract = new Process { StartInfo = psi };
-            extract.Start();
-            await extract.WaitForExitAsync();
-
-            if (File.Exists(coverFile))
-            {
-                byte[] bytes = await File.ReadAllBytesAsync(coverFile);
-
-                // Calcular hash MD5 de los bytes para el dedup de MPRIS.
-                using var md5 = MD5.Create();
-                string hash = BitConverter.ToString(md5.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
-
-                CoverBytes = bytes;
-                CoverHashHex = hash;
-            }
-            else
-            {
-                CoverBytes = null;
-                CoverHashHex = string.Empty;
-            }
-
-            // Limpiar carpeta temporal
-            try { Directory.Delete(tempDir, true); } catch { }
-        }
-        catch
-        {
-            CoverBytes = null;
-            CoverHashHex = string.Empty;
-        }
+        var result = await MediaUtils.Probe(CurrentPath, ProbeMode.OnlyCover);
+        CoverBytes = result.CoverBytes;
+        CoverHashHex = result.CoverHashHex;
         MprisService.Update();
     }
 

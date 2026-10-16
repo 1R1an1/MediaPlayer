@@ -2,8 +2,13 @@
  * Copyright (c) 2026 1R1an1 */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using MediaPlayer.Models;
 using SharpUtils.Linux;
 
 namespace MediaPlayer.Services;
@@ -65,5 +70,91 @@ public static class MediaUtils
         return hours > 0
             ? $"{hours}:{minutes:D2}:{secs:D2}"
             : $"{minutes}:{secs:D2}";
+    }
+
+    /// <summary>
+    /// Obtiene metadata de un archivo de media. Según <paramref name="mode"/> devuelve
+    /// solo el cover (con hash MD5) o todo: cover, duración y artista.
+    /// </summary>
+    public static async Task<MediaProbe> Probe(string path, ProbeMode mode)
+    {
+        var result = new MediaProbe();
+        if (string.IsNullOrEmpty(path) || !File.Exists(path)) return result;
+
+        try
+        {
+            if (mode == ProbeMode.All || mode == ProbeMode.AllWithoutHash)
+            {
+                var probe = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ffprobe",
+                    Arguments = $"-v quiet -show_entries format=duration:format_tags=artist -of default=noprint_wrappers=1:nokey=1 \"{path}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                string output = await probe.StandardOutput.ReadToEndAsync();
+                await probe.WaitForExitAsync();
+
+                var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length == 1)
+                {
+                    if (double.TryParse(lines[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double dur))
+                        result.Duration = TimeSpan.FromSeconds(dur);
+                    else
+                        result.Artist = lines[0].Trim();
+                }
+                else if (lines.Length == 2)
+                {
+                    result.Duration = TimeSpan.FromSeconds(double.Parse(lines[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture));
+                    result.Artist = lines[1].Trim();
+                }
+            }
+
+            // Cover con ffmpeg
+            string tempDir = Directory.CreateTempSubdirectory("mpv_probe_").FullName;
+            string ext = Path.GetExtension(path).ToLowerInvariant();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                CreateNoWindow = true,
+                WorkingDirectory = tempDir,
+            };
+
+            string coverFile;
+            if (ext == ".mkv")
+            {
+                psi.Arguments = $"-dump_attachment:t \"\" -i \"{path}\" -y -loglevel quiet";
+                coverFile = Path.Combine(tempDir, "cover.webp");
+            }
+            else
+            {
+                psi.Arguments = $"-i \"{path}\" -map 0:v:0 -c:v copy -y -loglevel quiet cover.jpg";
+                coverFile = Path.Combine(tempDir, "cover.jpg");
+            }
+
+            var extract = Process.Start(psi);
+            await extract.WaitForExitAsync();
+
+            if (File.Exists(coverFile))
+            {
+                byte[] bytes = await File.ReadAllBytesAsync(coverFile);
+                result.CoverBytes = bytes;
+
+                if (mode == ProbeMode.OnlyCover || mode == ProbeMode.All)
+                {
+                    using var md5 = MD5.Create();
+                    result.CoverHashHex = BitConverter.ToString(md5.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+                }
+            }
+
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+        catch { }
+        return result;
     }
 }
