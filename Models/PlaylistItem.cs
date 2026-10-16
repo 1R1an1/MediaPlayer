@@ -20,13 +20,6 @@ public class PlaylistItem : INotifyPropertyChanged
         set { _title = value; OnPropertyChanged(); }
     }
 
-    private TimeSpan _duration;
-    public TimeSpan Duration
-    {
-        get => _duration;
-        set { _duration = value; OnPropertyChanged(); OnPropertyChanged(nameof(DurationText)); }
-    }
-
     private bool _isCurrent;
     public bool IsCurrent
     {
@@ -41,21 +34,21 @@ public class PlaylistItem : INotifyPropertyChanged
         set { _artist = value; OnPropertyChanged(); }
     }
 
-    private byte[] _coverBytes;
-    public byte[] CoverBytes
-    {
-        get => _coverBytes;
-        set { _coverBytes = value; OnPropertyChanged(); OnPropertyChanged(nameof(CoverMap)); }
-    }
+    public byte[] CoverBytes { set { _coverMap = value == null ? null : new Bitmap(new MemoryStream(value)); OnPropertyChanged(nameof(CoverMap)); } }
 
-    public Bitmap CoverMap => new Bitmap(new MemoryStream(_coverBytes));
-    public string DurationText => (Duration == default) ? "--:--" : MediaUtils.FormatTime(Duration.TotalSeconds);
+    private Bitmap _coverMap;
+    public Bitmap CoverMap => _coverMap;
+
+    public TimeSpan Duration { set { _durationText = value == default ? "--:--" : MediaUtils.FormatTime(value.TotalSeconds); OnPropertyChanged(nameof(DurationText)); } }
+
+    public string _durationText;
+    public string DurationText => _durationText;
 
     public PlaylistItem(string path, string title = null, TimeSpan duration = default)
     {
         Path = path;
         _title = title ?? System.IO.Path.GetFileNameWithoutExtension(path);
-        _duration = duration;
+        Duration = duration;
     }
 
     public event PropertyChangedEventHandler PropertyChanged;
