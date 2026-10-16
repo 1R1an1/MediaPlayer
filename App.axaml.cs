@@ -59,7 +59,7 @@ public partial class App : Application
         Playlist = new PlaylistService() { PlaylistState = lastState.Playlist };
 
         if (haveArgs)
-            MediaLoader.LoadPaths(args);
+            MediaUtils.LoadPaths(args);
 
         Player = new Player() { PlayerState = lastState.Player };
     }

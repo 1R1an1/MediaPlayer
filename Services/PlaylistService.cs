@@ -12,6 +12,13 @@ using MediaPlayer.Models;
 
 namespace MediaPlayer.Services;
 
+public enum LoopMode
+{
+    None,
+    Track,
+    Playlist
+}
+
 /// <summary>Cola de reproducción. Maneja índice actual, Next/Prev según LoopMode y shuffle.</summary>
 public class PlaylistService
 {

@@ -58,13 +58,13 @@ public partial class PlayerView : UserControl
         RootGrid.PointerPressed += OnRootPointerPressed;
         RootGrid.PointerWheelChanged += OnRootPointerWheel;
 
-        SeekBar.ValueChanged += (_, _) => CurrentTimeText.Text = PlaylistItem.FormatTime(SeekBar.Value);
+        SeekBar.ValueChanged += (_, _) => CurrentTimeText.Text = MediaUtils.FormatTime(SeekBar.Value);
         VolumeSlider.ValueChanged += (_, _) => _mpv?.SetVolume01(VolumeSlider.Value);
 
         // --- MPV-OTHERS --- //
         _mpv.IsPlayingChanged += SetPlayPause;
         _mpv.PositionChanged += OnPositionChanged;
-        _mpv.DurationChanged += sec => Dispatcher.UIThread.Invoke(() => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = PlaylistItem.FormatTime(sec); });
+        _mpv.DurationChanged += sec => Dispatcher.UIThread.Invoke(() => { SeekBar.Maximum = sec > 0 ? sec : 1; DurationText.Text = MediaUtils.FormatTime(sec); });
         _mpv.OnVolumeChanged += SetVolumen;
         _mpv.MuteChanged += async m => { Dispatcher.UIThread.Invoke(() => { VolIcon.IsVisible = !m; MuteIcon.IsVisible = m; }); await ShowOverlay(m ? MuteIcon : VolIcon); };
         _mpv.PathChanged += path => Dispatcher.UIThread.Invoke(() => VideoHost.IsVisible = !string.IsNullOrEmpty(path));
@@ -209,7 +209,7 @@ public partial class PlayerView : UserControl
         {
             if (_mpv.DurationSec > 0)
                 SeekBar.Value = sec;
-            CurrentTimeText.Text = PlaylistItem.FormatTime(sec);
+            CurrentTimeText.Text = MediaUtils.FormatTime(sec);
         });
     }
 

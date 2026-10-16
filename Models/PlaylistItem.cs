@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Avalonia.Media.Imaging;
+using MediaPlayer.Services;
 
 namespace MediaPlayer.Models;
 
@@ -48,21 +49,13 @@ public class PlaylistItem : INotifyPropertyChanged
     }
 
     public Bitmap CoverMap => new Bitmap(new MemoryStream(_coverBytes));
-    public string DurationText => (Duration == default) ? "--:--" : FormatTime(Duration.TotalSeconds);
+    public string DurationText => (Duration == default) ? "--:--" : MediaUtils.FormatTime(Duration.TotalSeconds);
 
     public PlaylistItem(string path, string title = null, TimeSpan duration = default)
     {
         Path = path;
         _title = title ?? System.IO.Path.GetFileNameWithoutExtension(path);
         _duration = duration;
-    }
-
-    /// <summary>Formatea segundos como "m:ss" o "h:mm:ss".</summary>
-    public static string FormatTime(double seconds)
-    {
-        if (seconds < 0) seconds = 0;
-        var ts = TimeSpan.FromSeconds(seconds);
-        return ts.TotalHours >= 1 ? string.Format("{0:h\\:mm\\:ss}", ts) : string.Format("{0:m\\:ss}", ts);
     }
 
     public event PropertyChangedEventHandler PropertyChanged;

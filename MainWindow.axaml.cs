@@ -78,13 +78,13 @@ public partial class MainWindow : Window
             AllowMultiple = true,
             FileTypeFilter =
             [
-                new FilePickerFileType("Videos"){ Patterns = Array.ConvertAll(MediaLoader.SupportedExtensions, f => $"*{f}") },
+                new FilePickerFileType("Videos"){ Patterns = Array.ConvertAll(MediaUtils.SupportedExtensions, f => $"*{f}") },
                 new FilePickerFileType("Todos") { Patterns = ["*.*"] }
             ]
         });
 
         if (files == null || files.Count == 0) return;
-        MediaLoader.LoadFiles(files.Select(f => f.Path.LocalPath));
+        MediaUtils.LoadFiles(files.Select(f => f.Path.LocalPath));
     }
 
     private async Task OpenFolderPickerAsync()
@@ -100,7 +100,7 @@ public partial class MainWindow : Window
         var path = folders[0].Path.LocalPath;
         if (!Directory.Exists(path)) return;
 
-        MediaLoader.LoadPaths(path);
+        MediaUtils.LoadPaths(path);
     }
 
     private void ToggleFullscreen()
@@ -136,15 +136,7 @@ public partial class MainWindow : Window
     private void OnDrop(object sender, DragEventArgs e)
     {
         var files = e.DataTransfer?.TryGetFiles();
-        if (files == null || files.Length == 0) return;
-
-        var paths = files
-            .Where(f => MediaLoader.IsMediaFile(f.Path.LocalPath))
-            .Select(f => f.Path.LocalPath)
-            .ToList();
-        if (paths.Count == 0) return;
-
-        _playlist.Add(paths);
+        MediaUtils.LoadFiles(files?.Select(f => f.Path.LocalPath));
     }
 
     private void ShowPlaylist()

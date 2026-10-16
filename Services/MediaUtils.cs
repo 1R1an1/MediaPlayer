@@ -8,8 +8,8 @@ using SharpUtils.Linux;
 
 namespace MediaPlayer.Services;
 
-/// <summary>Carga archivos y carpetas en la playlist.</summary>
-public static class MediaLoader
+/// <summary>Utilidades que usa la app para los archivos</summary>
+public static class MediaUtils
 {
     public static readonly string[] SupportedExtensions =
         [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
@@ -51,5 +51,19 @@ public static class MediaLoader
             else if (File.Exists(full) && IsMediaFile(full))
                 yield return full;
         }
+    }
+
+    /// <summary>Formatea segundos como "m:ss" o "h:mm:ss".</summary>
+    public static string FormatTime(double seconds)
+    {
+        if (seconds < 0) seconds = 0;
+
+        int hours = (int)(seconds / 3600);
+        int minutes = (int)(seconds / 60) % 60;
+        int secs = (int)seconds % 60;
+
+        return hours > 0
+            ? $"{hours}:{minutes:D2}:{secs:D2}"
+            : $"{minutes}:{secs:D2}";
     }
 }

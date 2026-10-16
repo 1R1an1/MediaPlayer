@@ -82,7 +82,7 @@ public class BasicTUI
 
             canvas.WriteAtAndClear(0, 0, title);
             canvas.WriteAtAndClear(0, 1, artist);
-            string posS = PlaylistItem.FormatTime(pos), durS = PlaylistItem.FormatTime(dur);
+            string posS = MediaUtils.FormatTime(pos), durS = MediaUtils.FormatTime(dur);
             int w = (int)(canvas.Width / 1.5);
             string posB = new string('━', (int)(pos / dur * (w - posS.Length - durS.Length - 2))), durB = ThemeColors.Dim + new string('━', w - posB.Length - posS.Length - durS.Length - 2) + ThemeColors.Reset;
             canvas.WriteAtAndClear(0, 2, $"{posS} {posB}{durB} {durS}");
