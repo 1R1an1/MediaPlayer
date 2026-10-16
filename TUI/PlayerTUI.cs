@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaPlayer.Models;
 using MediaPlayer.Services;
 using SharpUtils.Linux;
 using SharpUtils.Utilities;
@@ -27,6 +26,7 @@ public class PlayerTUI
     private enum Switch { Tab, EnterSearch, ExitSearch, AfterTreeConfirm }
 
     private static MpvPlayer _mpv => App.Mpv;
+    private static Player _player => App.Player;
     private static PlaylistService _playlist => App.Playlist;
 
     // Mini-player state
@@ -171,16 +171,16 @@ public class PlayerTUI
         _rootRouter = new InputRouter(false)
             .Bind("Tab", "cambiar modo", () => _pendingSwitch = Switch.Tab, ConsoleKey.Tab)
             .Bind("Q", "salir", Quit, ConsoleKey.Q)
-            .Bind("Space/K", "play/pause", PlayPause, ConsoleKey.Spacebar, ConsoleKey.K)
-            .Bind("←", "seek -5s", () => _mpv.SeekRelative(-5), ConsoleKey.LeftArrow)
-            .Bind("→", "seek +5s", () => _mpv.SeekRelative(5), ConsoleKey.RightArrow)
-            .Bind("+/0", "vol +5%", () => _mpv.SetVolume01(_vol + 0.05), ConsoleKey.Add, ConsoleKey.D0)
-            .Bind("-/9", "vol -5%", () => _mpv.SetVolume01(_vol - 0.05), ConsoleKey.Subtract, ConsoleKey.D9)
-            .Bind("M", "mute", () => _mpv.SetMute(!_mpv.IsMuted), ConsoleKey.M)
-            .Bind("S", "shuffle", () => _playlist.Shuffle = !_playlist.Shuffle, ConsoleKey.S)
-            .Bind("L", "loop", _playlist.CycleLoopMode, ConsoleKey.L)
-            .Bind("B", "anterior", Prev, ConsoleKey.B)
-            .Bind("N", "siguiente", _playlist.Advance, ConsoleKey.N)
+            .Bind("Space/K", "play/pause", _player.PlayPause, ConsoleKey.Spacebar, ConsoleKey.K)
+            .Bind("←", "seek -5s", () => _player.SeekRelative(-5), ConsoleKey.LeftArrow)
+            .Bind("→", "seek +5s", () => _player.SeekRelative(5), ConsoleKey.RightArrow)
+            .Bind("+/0", "vol +5%", () => _player.VolumeDelta(0.05), ConsoleKey.Add, ConsoleKey.D0)
+            .Bind("-/9", "vol -5%", () => _player.VolumeDelta(-0.05), ConsoleKey.Subtract, ConsoleKey.D9)
+            .Bind("M", "mute", _player.ToggleMute, ConsoleKey.M)
+            .Bind("S", "shuffle", _player.ToggleShuffle, ConsoleKey.S)
+            .Bind("L", "loop", _player.CycleLoopMode, ConsoleKey.L)
+            .Bind("B", "anterior", _player.Preview, ConsoleKey.B)
+            .Bind("N", "siguiente", _player.Next, ConsoleKey.N)
             .BeforeKey(cki =>
             {
                 if (_mode == Mode.PlaylistMenu && (cki.Modifiers & ConsoleModifiers.Control) != 0 && cki.Key == ConsoleKey.F)
@@ -273,21 +273,6 @@ public class PlayerTUI
         RequestRender();
     }
 
-    // --- Mini-player actions ---
-
-    private static void PlayPause()
-    {
-        if (_mpv.CurrentPath == null) return;
-        if (_mpv.EofReached) { _mpv.SeekAbsolute(0); _mpv.Play(); }
-        else _mpv.PlayPause();
-    }
-
-    private static void Prev()
-    {
-        if (_mpv.PositionSec > 5) { _mpv.SeekAbsolute(0); return; }
-        _playlist.GoPrev();
-    }
-
     // --- Callbacks ---
 
     private static void OnPlaylistConfirm(int originalIndex)
@@ -304,7 +289,7 @@ public class PlayerTUI
         {
             if (Directory.Exists(path))
             {
-                var files = LinuxKRL.GetReadableFiles(path, MainWindow.IsMediaFile).OrderBy(f => f).ToList();
+                var files = LinuxKRL.GetReadableFiles(path, MediaUtils.IsMediaFile).OrderBy(f => f).ToList();
                 if (files.Count > 0)
                 {
                     _playlist.AddNew(files);
@@ -313,7 +298,7 @@ public class PlayerTUI
                 else
                     SetStatus("Carpeta sin archivos soportados");
             }
-            else if (File.Exists(path) && MainWindow.IsMediaFile(path))
+            else if (File.Exists(path) && MediaUtils.IsMediaFile(path))
             {
                 _playlist.Add(path);
                 SetStatus($"Agregado: {Path.GetFileName(path)}");
@@ -575,7 +560,7 @@ public class PlayerTUI
         string artist = string.IsNullOrEmpty(_artist) ? "—" : _artist;
         _miniCanvas.WriteAtAndClear(0, 1, $"{ThemeColors.Dim}{TruncateVisible(artist, w)}{ThemeColors.Reset}");
 
-        string posS = PlaylistItem.FormatTime(_pos), durS = PlaylistItem.FormatTime(_dur);
+        string posS = MediaUtils.FormatTime(_pos), durS = MediaUtils.FormatTime(_dur);
         int metaLen = posS.Length + durS.Length + 2;
         string posB = new string('━', (int)(_pos / _dur * (w - metaLen))), durB = new string('━', w - metaLen - posB.Length);
         _miniCanvas.WriteAt(0, 2, $"{posS} {ThemeColors.Primary}{posB}{ThemeColors.Reset}{ThemeColors.Dim}{durB}{ThemeColors.Reset} {durS}");
