@@ -52,6 +52,7 @@ public class PlayerTUI
     // Children tienen prioridad, así el modo consume sus teclas específicas primero.
     private static InputRouter _rootRouter;
     private static InputRouter _modeRouter;
+    private static InputRouter _explorerRouter;
 
     // Render/switch sync
     private static readonly SemaphoreSlim _renderSignal = new(0, 1);
@@ -91,7 +92,8 @@ public class PlayerTUI
 
         SubscribeEvents();
         BuildRootRouter();
-        _modeRouter = _playlist.Items.Count == 0 ? BuildAbrirRouter() : BuildPlaylistMenuRouter();
+        BuildAbrirRouter(true);
+        _modeRouter = _playlist.Items.Count == 0 ? BuildAbrirRouter(false) : BuildPlaylistMenuRouter();
         _rootRouter.AddChild(_modeRouter);
         RequestRender();
 
@@ -188,21 +190,21 @@ public class PlayerTUI
 
     // --- Mode router builders ---
 
-    private static InputRouter BuildAbrirRouter()
+    private static InputRouter BuildAbrirRouter(bool create)
     {
         _mode = Mode.Abrir;
-        _treeState = null;
 
-        var router = TreeExplorer.AddBindings(_preservedTreePath, new ExplorerOptions { Filter = ExplorerFilter.All, IgnoreSymlinks = true }, null, state =>
-            {
-                _treeState = state;
-                _preservedTreePath = state.CurrentNode;
-                RequestRender();
-            },
-            onSuccess: OnTreeConfirm,
-            onCancel: () => _pendingSwitch = Switch.Tab);
+        if (create)
+            _explorerRouter = TreeExplorer.AddBindings(_preservedTreePath, new ExplorerOptions { Filter = ExplorerFilter.All, IgnoreSymlinks = true }, null, state =>
+                {
+                    _treeState = state;
+                    _preservedTreePath = state.CurrentNode;
+                    RequestRender();
+                },
+                onSuccess: OnTreeConfirm,
+                onCancel: Quit);
 
-        return router;
+        return _explorerRouter;
     }
 
     private static InputRouter BuildPlaylistMenuRouter()
@@ -214,7 +216,7 @@ public class PlayerTUI
         _menuCursor = start;
 
         var router = Menu.AddBindings(items, start, cursor => { _menuCursor = cursor; _preservedPlaylistCursor = cursor; RequestRender(); },
-            onSuccess: OnPlaylistConfirm, onCancel: () => _pendingSwitch = Switch.Tab);
+            onSuccess: OnPlaylistConfirm, onCancel: Quit);
 
         return router;
     }
@@ -243,7 +245,7 @@ public class PlayerTUI
                 RequestRender();
             },
             onSuccess: OnPlaylistConfirm,
-            onCancel: () => _pendingSwitch = Switch.ExitSearch);
+            onCancel: Quit);
 
         // Tab: también sale del search (vuelve a PlaylistMenu).
         router.Bind("Tab", "salir búsqueda", () => _pendingSwitch = Switch.ExitSearch, ConsoleKey.Tab);
@@ -259,7 +261,7 @@ public class PlayerTUI
 
         _modeRouter = _pendingSwitch switch
         {
-            Switch.Tab => _mode == Mode.Abrir ? BuildPlaylistMenuRouter() : BuildAbrirRouter(),
+            Switch.Tab => _mode == Mode.Abrir ? BuildPlaylistMenuRouter() : BuildAbrirRouter(false),
             Switch.EnterSearch => BuildPlaylistSearchRouter(),
             Switch.ExitSearch => BuildPlaylistMenuRouter(),
             Switch.AfterTreeConfirm => BuildPlaylistMenuRouter(),
@@ -267,7 +269,6 @@ public class PlayerTUI
         };
         _pendingSwitch = null;
 
-        _modeRouter.Bind("", "", Quit, ConsoleKey.Q);
         _rootRouter.AddChild(_modeRouter);
         RequestRender();
     }
