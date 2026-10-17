@@ -51,14 +51,15 @@ Uso:
 ```bash
 mp                              # Abre la GUI sin archivos
 mp video.mkv ~/carpeta          # Abre la GUI con uno o más archivos/carpetas
-mp --nogui video.mkv            # Fuerza la TUI en lugar de la GUI
+mp --nogui video.mkv            # Fuerza la TUI basica en lugar de la GUI
+mp --tui video.mkv              # Utiliza la TUI completa en lugar de la GUI
 ```
 
-La TUI también se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
+La TUI basica se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
 
 <details><summary>Instalación manual</summary>
 
-El repositorio incluye [SharpUtils](https://github.com/1R1an1/SharpUtils) y [TermFlow.Net](https://github.com/1R1an1/TermFlow.Net) como submódulos.
+Como el repositorio incluye los submodulos [SharpUtils](https://github.com/1R1an1/SharpUtils) y [TermFlow.Net](https://github.com/1R1an1/TermFlow.Net), se necesita inicializarlos.
 
 Clonar con `--recursive`:
 
@@ -67,7 +68,7 @@ git clone --recursive https://github.com/1R1an1/MediaPlayer.git
 cd MediaPlayer
 ```
 
-O, si ya estaba clonado sin `--recursive`, inicializar los submódulos:
+O, si ya estaba clonado sin `--recursive`, inicializarlos:
 
 ```bash
 git clone https://github.com/1R1an1/MediaPlayer.git
@@ -94,12 +95,12 @@ Uso del script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh
 
 ```bash
 ./yt.sh video <URL>              # Descarga video en .mkv con miniatura y metadatos embebidos
-./yt.sh musica <mp3|flac> <URL>  # Descarga solo audio con miniatura y metadatos embebidos
-./yt.sh musicaR <mp3|flac> <URL> # Igual que musica, pero recorta la miniatura a cuadrado
-./yt.sh recortar                 # Recorta a cuadrado las miniaturas de todos los .flac y .mp3 de la carpeta actual
+./yt.sh music <mp3|flac> <URL>   # Descarga solo audio con miniatura y metadatos embebidos
+./yt.sh musicC <mp3|flac> <URL>  # Igual que musica, pero recorta la miniatura a cuadrado
+./yt.sh crop                     # Recorta a cuadrado las miniaturas de todos los .flac y .mp3 de la carpeta actual
 ```
 
-Requiere tener `yt-dlp` y `ffmpeg` instalados.
+Requiere tener `yt-dlp`, `ffmpeg` y `python-mutagen` instalados.
 
 ---
 

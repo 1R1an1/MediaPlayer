@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 1R1an1
 #
-# Instala MediaPlayer desde el repo de git, sin necesidad de clonar a mano.
+# Instala MediaPlayer desde el repo de git.
 
 set -e
 
@@ -14,8 +14,8 @@ BIN_LINK="/usr/local/bin/$BIN_NAME"
 DESKTOP_FILE="/usr/share/applications/$APP_NAME.desktop"
 ICON_DIR="/usr/share/icons/hicolor/scalable/apps"
 
-# Dependencias del sistema
-DEPS=("git" "dotnet" "ffmpeg" "ffprobe")
+# Dependencias: git, dotnet, ffmpeg (incluye ffprobe), libmpv2.
+DEPS="git dotnet ffmpeg ffprobe"
 
 err() { echo -e "\033[31m[ERROR]\033[0m $*" >&2; exit 1; }
 info() { echo -e "\033[36m[INFO]\033[0m $*"; }
@@ -25,15 +25,24 @@ info() { echo -e "\033[36m[INFO]\033[0m $*"; }
 
 # Verificar dependencias
 info "Verificando dependencias del sistema..."
-for dep in "${DEPS[@]}"; do
-    command -v "$dep" >/dev/null 2>&1 || err "Falta '$dep'. Instalalo antes de correr este script."
-done
+miss=0
 
-# libmpv: verificar via ldconfig
-$SUDO ldconfig -p 2>/dev/null | grep -q "libmpv.so.2" || err "Falta libmpv2. Instalala antes de correr este script:
-  Arch/CachyOS:   sudo pacman -S mpv
-  Debian/Ubuntu:  sudo apt install libmpv2
-  Fedora:         sudo dnf install mpv-libs"
+set +e
+for dep in $DEPS; do
+    command -v "$dep" >/dev/null 2>&1 || ((miss++))
+done
+$SUDO ldconfig -p 2>/dev/null | grep -q "libmpv.so.2" || ((miss++))
+set -e
+
+if [[ $miss -gt 0 ]]; then
+    if   command -v apt    >/dev/null 2>&1; then cmd="$SUDO apt install"; dn="dotnet-sdk-10.0"; mpv="libmpv2"
+    elif command -v pacman >/dev/null 2>&1; then cmd="$SUDO pacman -S --needed"; dn="dotnet-sdk"; mpv="mpv"
+    elif command -v dnf    >/dev/null 2>&1; then cmd="$SUDO dnf install"; dn="dotnet-sdk-10.0"; mpv="mpv-libs"
+    else err "Falta(n) $miss paquete(s) y no se detectó ningún gestor."; fi
+    read -rp "Falta(n) $miss paquete(s). ¿Instalar? [y/N] " yn
+    [[ "$yn" =~ ^[Yy]$ ]] || err "Cancelado."
+    $cmd git $dn ffmpeg $mpv || err "Falló la instalación."
+fi
 
 # Verificar versión de .NET SDK
 info "Verificando .NET SDK..."
