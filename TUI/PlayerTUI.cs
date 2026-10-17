@@ -245,7 +245,7 @@ public class PlayerTUI
                 RequestRender();
             },
             onSuccess: OnPlaylistConfirm,
-            onCancel: Quit);
+            onCancel: () => _pendingSwitch = Switch.ExitSearch);
 
         // Tab: también sale del search (vuelve a PlaylistMenu).
         router.Bind("Tab", "salir búsqueda", () => _pendingSwitch = Switch.ExitSearch, ConsoleKey.Tab);
@@ -448,7 +448,12 @@ public class PlayerTUI
         int visible = Math.Max(1, _playlistScroll.VisibleRows);
 
         if (state.Filtered.Count == 0)
+        {
             c.WriteAtAndClear(0, 2, "  (sin resultados — Esc para volver)", ThemeColors.Dim);
+
+            // limpia los elementos anteiores
+            c.ClearArea(0, 3, w - 1, h - 1);
+        }
         else
         {
             // DrawList recibe los filtered. El formatter resuelve originalIdx vía _titleIndex.
