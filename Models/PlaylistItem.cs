@@ -34,11 +34,32 @@ public class PlaylistItem : INotifyPropertyChanged
         set { _artist = value; OnPropertyChanged(); }
     }
 
-    public byte[] CoverBytes { set { _coverMap = value == null ? null : new Bitmap(new MemoryStream(value)); OnPropertyChanged(nameof(CoverMap)); } }
+    private byte[] _coverBytes;
+    public byte[] CoverBytes
+    {
+        get => _coverBytes;
+        set
+        {
+            _coverBytes = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CoverMap));
+        }
+    }
 
+    private byte[] _lastCoverBytes;
     private Bitmap _coverMap;
-    public Bitmap CoverMap => _coverMap;
-
+    public Bitmap CoverMap
+    {
+        get
+        {
+            if (_lastCoverBytes != _coverBytes)
+            {
+                _lastCoverBytes = _coverBytes;
+                _coverMap = _coverBytes?.Length > 0 ? new Bitmap(new MemoryStream(_coverBytes)) : null;
+            }
+            return _coverMap;
+        }
+    }
     public TimeSpan Duration { set { _durationText = value == default ? "--:--" : MediaUtils.FormatTime(value.TotalSeconds); OnPropertyChanged(nameof(DurationText)); } }
 
     public string _durationText;
