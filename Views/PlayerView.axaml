@@ -111,16 +111,16 @@ Copyright (c) 2026 1R1an1 -->
 
                 <!-- Izquierda: Prev | Play/Pause | Next -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Classes="icon" x:Name="PrevBtn" ToolTip.Tip="Anterior (B)">
+                    <Button Classes="icon" x:Name="PrevBtn" ToolTip.Tip="Previous (B)">
                         <skp:Svg Path="avares://MediaPlayer/Svgs/Preview.svg" CurrentColor="{StaticResource AccentColor}" Width="18"/>
                     </Button>
-                    <Button Classes="icon" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pausa (Space)">
+                    <Button Classes="icon" x:Name="PlayPauseBtn" ToolTip.Tip="Play/Pause (Space)">
                         <Grid HorizontalAlignment="Center">
                             <skp:Svg x:Name="PlayIcon" Path="avares://MediaPlayer/Svgs/Play.svg" CurrentColor="{StaticResource AccentColor}" Width="20"/>
                             <skp:Svg x:Name="PauseIcon" Path="avares://MediaPlayer/Svgs/Pause.svg" CurrentColor="{StaticResource AccentColor}" Width="20" IsVisible="False"/>
                         </Grid>
                     </Button>
-                    <Button Classes="icon" x:Name="NextBtn" ToolTip.Tip="Siguiente (N)">
+                    <Button Classes="icon" x:Name="NextBtn" ToolTip.Tip="Next (N)">
                         <skp:Svg Path="avares://MediaPlayer/Svgs/Next.svg" CurrentColor="{StaticResource AccentColor}" Width="18"/>
                     </Button>
                 </StackPanel>
@@ -156,10 +156,10 @@ Copyright (c) 2026 1R1an1 -->
                             <skp:Svg x:Name="LoopOneIcon" Path="avares://MediaPlayer/Svgs/LoopOne.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False"/>
                         </Grid>
                     </Button>
-                    <Button Classes="icon" x:Name="AudioBtn" ToolTip.Tip="Pista de audio (J)">
+                    <Button Classes="icon" x:Name="AudioBtn" ToolTip.Tip="Audio tracks (J)">
                         <skp:Svg Path="avares://MediaPlayer/Svgs/Sound.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5"/>
                     </Button>
-                    <Button Classes="icon" x:Name="FullScreenBtn" ToolTip.Tip="Pantalla completa (F)">
+                    <Button Classes="icon" x:Name="FullScreenBtn" ToolTip.Tip="Fullscreen (F)">
                         <Grid HorizontalAlignment="Center">
                             <skp:Svg x:Name="FullScreenIcon" Path="avares://MediaPlayer/Svgs/Fullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="18"/>
                             <skp:Svg x:Name="NoFullScreenIcon" Path="avares://MediaPlayer/Svgs/NoFullscreen.svg" CurrentColor="{StaticResource AccentColor}" Width="19.5" IsVisible="False"/>

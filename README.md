@@ -5,16 +5,18 @@
 [![Last Commit](https://img.shields.io/github/last-commit/1R1an1/MediaPlayer)](https://github.com/1R1an1/MediaPlayer/commits/master/)
 [![Repo Stars](https://img.shields.io/github/stars/1R1an1/MediaPlayer?style=social)](https://github.com/1R1an1/MediaPlayer)
 
-Reproductor de video nativo para Linux, construido con Avalonia UI y libmpv.
-Controles en tema oscuro sobre el reproductor, integración con el escritorio vía MPRIS2 (GNOME, KDE, etc), y atajos de teclado estilo mpv.
+**English** | [Español](README.es.md)
+
+Native video player for Linux, built with Avalonia UI and libmpv.
+Dark-themed controls over the player, desktop integration via MPRIS2 (GNOME, KDE, etc.), and mpv-style keyboard shortcuts.
 
 ---
 
-## Capturas
+## Screenshots
 
-### Reproductor
+### Player
 
-![Reproductor](screenshots/player.png)
+![Player](screenshots/player.png)
 
 ### Playlist
 
@@ -22,53 +24,53 @@ Controles en tema oscuro sobre el reproductor, integración con el escritorio v�
 
 ---
 
-## Formatos soportados
+## Supported formats
 
 - Video: `.mp4` `.mkv` `.webm` `.avi` `.mov` `.flv` `.wmv` `.mpg` `.mpeg` `.m4v` `.ts`
 - Audio: `.mp3` `.flac`
 
 ---
 
-## Requisitos
+## Requirements
 
-| Requisito         | Detalle                              |
-| ----------------- | ------------------------------------ |
-| .NET SDK          | **10.0+**                            |
-| Sistema operativo | Linux                                |
-| libmpv            | `libmpv2`                            |
-| ffmpeg / ffprobe  | Para extracción de covers y duración |
+| Requirement      | Detail                            |
+| ---------------- | --------------------------------- |
+| .NET SDK         | **10.0+**                         |
+| Operating system | Linux                             |
+| libmpv           | `libmpv2`                         |
+| ffmpeg / ffprobe | For cover extraction and duration |
 
 ---
 
-## Instalación
+## Installation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/1R1an1/MediaPlayer/master/setup | bash
 ```
 
-Uso:
+Usage:
 
 ```bash
-mp                              # Abre la GUI sin archivos
-mp video.mkv ~/carpeta          # Abre la GUI con uno o más archivos/carpetas
-mp --nogui video.mkv            # Fuerza la TUI basica en lugar de la GUI
-mp --tui video.mkv              # Utiliza la TUI completa en lugar de la GUI
+mp                              # Opens the GUI with no files
+mp video.mkv ~/folder           # Opens the GUI with one or more files/folders
+mp --nogui video.mkv            # Forces the basic TUI instead of the GUI
+mp --tui video.mkv              # Uses the full TUI instead of the GUI
 ```
 
-La TUI basica se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
+The basic TUI is automatically activated if no `DISPLAY` is available (SSH sessions, headless terminals).
 
-<details><summary>Instalación manual</summary>
+<details><summary>Manual installation</summary>
 
-Como el repositorio incluye los submodulos [SharpUtils](https://github.com/1R1an1/SharpUtils) y [TermFlow.Net](https://github.com/1R1an1/TermFlow.Net), se necesita inicializarlos.
+Since the repository includes the [SharpUtils](https://github.com/1R1an1/SharpUtils) and [TermFlow.Net](https://github.com/1R1an1/TermFlow.Net) submodules, they need to be initialized.
 
-Clonar con `--recursive`:
+Clone with `--recursive`:
 
 ```bash
 git clone --recursive https://github.com/1R1an1/MediaPlayer.git
 cd MediaPlayer
 ```
 
-O, si ya estaba clonado sin `--recursive`, inicializarlos:
+Or, if already cloned without `--recursive`, initialize them:
 
 ```bash
 git clone https://github.com/1R1an1/MediaPlayer.git
@@ -76,7 +78,7 @@ cd MediaPlayer
 git submodule update --init --recursive
 ```
 
-Compilar e instalar:
+Build and install:
 
 ```bash
 dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true
@@ -87,61 +89,61 @@ sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr
 
 ---
 
-## Descarga de videos y música
+## Video and music download
 
-MediaPlayer usa las miniaturas embebidas en los archivos para mostrar la portada en la playlist y en MPRIS. Para audio (`.mp3` y `.flac`) la miniatura funciona de forma universal, pero para video (`.mkv`) requiere un formato específico. El script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) usa `yt-dlp` con las opciones correctas para que las miniaturas y los metadatos queden embebidos con el formato compatible de la app.
+MediaPlayer uses the thumbnails embedded in files to display the cover art in the playlist and in MPRIS. For audio (`.mp3` and `.flac`) the thumbnail works universally, but for video (`.mkv`) it requires a specific format. The [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) script uses `yt-dlp` with the correct options so that thumbnails and metadata are embedded in the app's compatible format.
 
-Uso del script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh)
+Usage of the [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) script:
 
 ```bash
-./yt.sh video <URL>              # Descarga video en .mkv con miniatura y metadatos embebidos
-./yt.sh music <mp3|flac> <URL>   # Descarga solo audio con miniatura y metadatos embebidos
-./yt.sh musicC <mp3|flac> <URL>  # Igual que musica, pero recorta la miniatura a cuadrado
-./yt.sh crop                     # Recorta a cuadrado las miniaturas de todos los .flac y .mp3 de la carpeta actual
+./yt.sh video <URL>              # Downloads video in .mkv with embedded thumbnail and metadata
+./yt.sh music <mp3|flac> <URL>   # Downloads audio only with embedded thumbnail and metadata
+./yt.sh musicC <mp3|flac> <URL>  # Same as music, but crops the thumbnail to a square
+./yt.sh crop                     # Crops to a square the thumbnails of all .flac and .mp3 files in the current folder
 ```
 
-Requiere tener `yt-dlp`, `ffmpeg` y `python-mutagen` instalados.
+Requires `yt-dlp`, `ffmpeg`, and `python-mutagen` to be installed.
 
 ---
 
-## Atajos de teclado
+## Keyboard shortcuts
 
-| Acción                   | Tecla              | Modo     |
-| ------------------------ | ------------------ | -------- |
-| Play / Pausa             | `Space`, `K`       | GUI, TUI |
-| Siguiente                | `N`                | GUI, TUI |
-| Anterior                 | `B`                | GUI, TUI |
-| Retroceder 5s            | `←`                | GUI, TUI |
-| Avanzar 5s               | `→`                | GUI, TUI |
-| Retroceder 30s           | `Shift + ←`        | GUI      |
-| Avanzar 30s              | `Shift + →`        | GUI      |
-| Retroceder 60s           | `Ctrl + ←`         | GUI      |
-| Avanzar 60s              | `Ctrl + →`         | GUI      |
-| Avanzar 1 frame          | `.`                | GUI      |
-| Retroceder 1 frame       | `,`                | GUI      |
-| Volumen +5%              | `↑`, `+`, `0`      | GUI, TUI |
-| Volumen -5%              | `↓`, `-`, `9`      | GUI, TUI |
-| Mute                     | `M`                | GUI, TUI |
-| Cambiar modo loop        | `L`                | GUI, TUI |
-| Alternar modo aleatorio  | `S`                | GUI, TUI |
-| Siguiente pista de audio | `J`                | GUI      |
-| Pantalla completa        | `F`                | GUI      |
-| Salir de fullscreen      | `Esc`              | GUI      |
-| Mostrar / ocultar cola   | `C`                | GUI      |
-| Abrir archivos           | `Ctrl + O`         | GUI      |
-| Abrir carpeta            | `Ctrl + Shift + O` | GUI      |
-| Salir                    | `Q`                | GUI, TUI |
+| Action            | Key                | Mode     |
+| ----------------- | ------------------ | -------- |
+| Play / Pause      | `Space`, `K`       | GUI, TUI |
+| Next              | `N`                | GUI, TUI |
+| Previous          | `B`                | GUI, TUI |
+| Rewind 5s         | `←`                | GUI, TUI |
+| Forward 5s        | `→`                | GUI, TUI |
+| Rewind 30s        | `Shift + ←`        | GUI      |
+| Forward 30s       | `Shift + →`        | GUI      |
+| Rewind 60s        | `Ctrl + ←`         | GUI      |
+| Forward 60s       | `Ctrl + →`         | GUI      |
+| Forward 1 frame   | `.`                | GUI      |
+| Rewind 1 frame    | `,`                | GUI      |
+| Volume +5%        | `↑`, `+`, `0`      | GUI, TUI |
+| Volume -5%        | `↓`, `-`, `9`      | GUI, TUI |
+| Mute              | `M`                | GUI, TUI |
+| Change loop mode  | `L`                | GUI, TUI |
+| Toggle shuffle    | `S`                | GUI, TUI |
+| Next audio track  | `J`                | GUI      |
+| Fullscreen        | `F`                | GUI      |
+| Exit fullscreen   | `Esc`              | GUI      |
+| Show / hide queue | `C`                | GUI      |
+| Open files        | `Ctrl + O`         | GUI      |
+| Open folder       | `Ctrl + Shift + O` | GUI      |
+| Exit              | `Q`                | GUI, TUI |
 
 ---
 
 ## Issues
 
-Si encontraste un bug o tenés una idea para mejorar la app, podés abrir un [Issue](https://github.com/1R1an1/MediaPlayer/issues) en el repositorio.
+If you found a bug or have an idea to improve the app, you can open an [Issue](https://github.com/1R1an1/MediaPlayer/issues) in the repository.
 
 ---
 
-## Licencia
+## License
 
-Este proyecto está bajo la licencia **Mozilla Public License 2.0 (MPL-2.0)**.
+This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
 
-Ver [LICENSE](https://github.com/1R1an1/MediaPlayer/blob/master/LICENSE) para el texto completo.
+See [LICENSE](https://github.com/1R1an1/MediaPlayer/blob/master/LICENSE) for the full text.

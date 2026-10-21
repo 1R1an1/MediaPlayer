@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2026 1R1an1
 #
-# Instala MediaPlayer desde el repo de git.
+# Install MediaPlayer from the git repo.
 
 set -e
 
@@ -24,7 +24,7 @@ info() { echo -e "\033[36m[INFO]\033[0m $*"; }
 [[ $EUID -ne 0 ]] && SUDO="sudo" || SUDO=""
 
 # Verificar dependencias
-info "Verificando dependencias del sistema..."
+info "Checking system dependencies..."
 miss=0
 
 set +e
@@ -38,55 +38,56 @@ if [[ $miss -gt 0 ]]; then
     if   command -v apt    >/dev/null 2>&1; then cmd="$SUDO apt install"; dn="dotnet-sdk-10.0"; mpv="libmpv2"
     elif command -v pacman >/dev/null 2>&1; then cmd="$SUDO pacman -S --needed"; dn="dotnet-sdk"; mpv="mpv"
     elif command -v dnf    >/dev/null 2>&1; then cmd="$SUDO dnf install"; dn="dotnet-sdk-10.0"; mpv="mpv-libs"
-    else err "Falta(n) $miss paquete(s) y no se detectó ningún gestor."; fi
-    read -rp "Falta(n) $miss paquete(s). ¿Instalar? [y/N] " yn
-    [[ "$yn" =~ ^[Yy]$ ]] || err "Cancelado."
-    $cmd git $dn ffmpeg $mpv || err "Falló la instalación."
+    else err "$miss package(s) are missing and no package manager was detected."; fi
+    read -rp "$miss package(s) are missing. Install? [y/N]" yn
+    [[ "$yn" =~ ^[Yy]$ ]] || err "Canceled."
+    $cmd git $dn ffmpeg $mpv || err "Installation failed."
 fi
 
 # Verificar versión de .NET SDK
-info "Verificando .NET SDK..."
+info "Checking .NET SDK..."
 DOTNET_VERSION=$(dotnet --version 2>/dev/null || echo "0")
-[[ "$DOTNET_VERSION" =~ ^10 ]] || err "Se requiere .NET SDK 10.0+. Tenés: $DOTNET_VERSION"
+[[ "$DOTNET_VERSION" =~ ^10 ]] || err "Requires .NET SDK 10.0+. You have: $DOTNET_VERSION"
 
 # Crear dir temporal
 TMP_DIR=$(mktemp -d /tmp/$APP_NAME-setup.XXXXXX)
 trap 'rm -rf "$TMP_DIR"' EXIT
-info "Clonando repo en $TMP_DIR..."
+info "Cloning repo in $TMP_DIR..."
 
 # Clonar con submódulos
 git clone --recursive "$REPO_URL" "$TMP_DIR/$APP_NAME"
 cd "$TMP_DIR/$APP_NAME"
 
 # Publicar
-info "Compilando..."
+info "Compiling..."
 dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true
 PUBLISH_DIR="$TMP_DIR/$APP_NAME/bin/Release/net10.0/linux-x64/publish"
 
-[[ -f "$PUBLISH_DIR/MediaPlayer" ]] || err "No se encontró el binario compilado en $PUBLISH_DIR"
+[[ -f "$PUBLISH_DIR/MediaPlayer" ]] || err "The compiled binary was not found in $PUBLISH_DIR"
 
 # Instalar
-info "Instalando en $INSTALL_DIR..."
+info "Installing in $INSTALL_DIR..."
 $SUDO rm -rf "$INSTALL_DIR"
 $SUDO mkdir -p "$INSTALL_DIR"
 $SUDO cp -r "$PUBLISH_DIR"/* "$INSTALL_DIR/"
 $SUDO chmod +x "$INSTALL_DIR/MediaPlayer"
 
 # Symlink del comando
-info "Creando symlink $BIN_LINK → $INSTALL_DIR/MediaPlayer..."
+info "Creating symlink $BIN_LINK → $INSTALL_DIR/MediaPlayer..."
 $SUDO ln -sf "$INSTALL_DIR/MediaPlayer" "$BIN_LINK"
 
 # Ícono
-info "Instalando ícono..."
+info "Installing icon..."
 $SUDO mkdir -p "$ICON_DIR"
 $SUDO cp -f Svgs/Icon.svg "$ICON_DIR/$APP_NAME.svg"
 
 # .desktop
-info "Creando $DESKTOP_FILE..."
+info "Creating $DESKTOP_FILE..."
 $SUDO tee "$DESKTOP_FILE" >/dev/null <<EOF
 [Desktop Entry]
 Name=Media Player
-Comment=Reproductor de video basado en mpv
+Comment=MPV-based video player
+Comment[es]=Reproductor de video basado en mpv
 Exec=$BIN_LINK %U
 Icon=$APP_NAME
 Terminal=false
@@ -99,7 +100,7 @@ EOF
 $SUDO update-desktop-database /usr/share/applications 2>/dev/null || true
 $SUDO gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 
-info "Listo."
+info "Ready."
 info ""
-info "Instalado correctamente. Usalo con el comando \`mp\` o desde el menú de aplicaciones."
-info "Si no aparece en el menú, reiniciá la sesión."
+info "Installed successfully. Use it with the `mp` command or from the applications menu."
+info "If it doesn't appear in the menu, restart your session."
