@@ -102,5 +102,5 @@ $SUDO gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 
 info "Ready."
 info ""
-info "Installed successfully. Use it with the `mp` command or from the applications menu."
+info "Installed successfully. Use it with the \`mp\` command or from the applications menu."
 info "If it doesn't appear in the menu, restart your session."
