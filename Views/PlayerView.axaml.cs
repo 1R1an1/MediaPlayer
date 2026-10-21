@@ -59,6 +59,8 @@ public partial class PlayerView : UserControl
         RootGrid.PointerWheelChanged += OnRootPointerWheel;
 
         SeekBar.ValueChanged += (_, _) => CurrentTimeText.Text = MediaUtils.FormatTime(SeekBar.Value);
+        SeekBar.PointerMoved += OnSeekBarPointerMoved;
+        SeekBar.PointerExited += (_, _) => HoverTimeBorder.Opacity = 0;
         VolumeSlider.ValueChanged += (_, _) => _mpv?.SetVolume01(VolumeSlider.Value);
 
         // --- MPV-OTHERS --- //
@@ -200,6 +202,17 @@ public partial class PlayerView : UserControl
         else if (e.Delta.Y < 0)
             _player.VolumeDelta(-0.05);
         e.Handled = true;
+    }
+
+    private void OnSeekBarPointerMoved(object sender, PointerEventArgs e)
+    {
+        double seconds = Math.Min(e.GetPosition(SeekBar).X / SeekBar.Bounds.Width, 1) * SeekBar.Maximum;
+        HoverTimeText.Text = MediaUtils.FormatTime(seconds);
+        HoverTimeBorder.Opacity = 1;
+
+        var positionPos = CurrentTimeText.TranslatePoint(new Point(0, 0), RootGrid);
+        var durationPos = DurationText.TranslatePoint(new Point(0, 0), RootGrid);
+        HoverTimeBorder.Margin = new Thickness(Math.Clamp(e.GetPosition(RootGrid).X - HoverTimeBorder.Bounds.Width / 2, positionPos.Value.X, durationPos.Value.X), 0, 0, 63);
     }
 
     private void OnPositionChanged(double sec)

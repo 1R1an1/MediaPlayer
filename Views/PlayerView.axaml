@@ -29,18 +29,14 @@ Copyright (c) 2026 1R1an1 -->
             <Border
                 Classes="Island"
                 VerticalAlignment="Top"
-                BorderThickness="1.5"
-                Background="#da111111"
-                BorderBrush="{StaticResource DividerBrush}"
+                Background="#ce111111"
+                BorderBrush="Transparent"
                 Height="120"
-                Padding="5">
+                Padding="3.5,5">
                 <Slider x:Name="VolumeSlider"
-                        Orientation="Vertical"
-                        Foreground="#ccc"
-                        Height="100"
-                        Minimum="0"
-                        Maximum="1"
-                        Width="20" />
+                        Orientation="Vertical" Foreground="#ccc"
+                        Height="100"  Width="20"
+                        Minimum="0" Maximum="1" />
             </Border>
         </Grid>
 
@@ -171,6 +167,24 @@ Copyright (c) 2026 1R1an1 -->
                     </Button>
                 </StackPanel>
             </Grid>
+        </Border>
+
+        <!-- Tiempo que aparece al pasar el mouse por la seekbar -->
+        <Border x:Name="HoverTimeBorder"
+                IsVisible="True" IsHitTestVisible="False"
+                VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                Background="#ce111111" BorderBrush="Transparent"
+                Opacity="0" Padding="6,2" CornerRadius="10"
+                BoxShadow="{StaticResource ControlShadow}">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                </Transitions>
+            </Border.Transitions>
+            <TextBlock x:Name="HoverTimeText"
+                       FontFamily="{StaticResource MonoFontFamily}"
+                       FontSize="{StaticResource FontSizeSmall}"
+                       Foreground="{StaticResource MutedBrush}"/>
         </Border>
     </Grid>
 </UserControl>

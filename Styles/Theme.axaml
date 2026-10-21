@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: MPL-2.0
-  Copyright (c) 2026 1R1an1 -->
+Copyright (c) 2026 1R1an1 -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -7,7 +7,7 @@
     <Color x:Key="BackgroundColor">#0a0a0a</Color>
     <Color x:Key="ForegroundColor">#fff</Color>
     <Color x:Key="MutedColor">#888</Color>
-    <Color x:Key="BorderColor">#8777</Color>
+    <Color x:Key="BorderColor">#a444</Color>
     <Color x:Key="AccentColor">#fff</Color>
 
     <!-- Isla flotante: fondo semi-transparente -->
@@ -21,9 +21,6 @@
     <!-- Slider: track vacío (blanco 20%) -->
     <Color x:Key="TrackEmptyColor">#3fff</Color>
     <Color x:Key="TrackEmptyDisabledColor">#2fff</Color>
-
-    <!-- Divisores (más sutiles que BorderColor) -->
-    <Color x:Key="DividerColor">#222</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush"         Color="{StaticResource BackgroundColor}" />
@@ -40,8 +37,6 @@
 
     <SolidColorBrush x:Key="TrackEmptyBrush"         Color="{StaticResource TrackEmptyColor}" />
     <SolidColorBrush x:Key="TrackEmptyDisabledBrush" Color="{StaticResource TrackEmptyDisabledColor}" />
-
-    <SolidColorBrush x:Key="DividerBrush"            Color="{StaticResource DividerColor}" />
 
     <!-- Tipografía -->
     <FontFamily x:Key="DefaultFontFamily">Inter, SF Pro Display, Segoe UI, Noto Sans, sans-serif</FontFamily>
