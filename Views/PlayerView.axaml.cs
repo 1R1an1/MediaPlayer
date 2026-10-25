@@ -96,6 +96,11 @@ public partial class PlayerView : UserControl
         if (_playlist.LoopMode != LoopMode.None)
             SetLoopModeBtn(_playlist.LoopMode);
     }
+    protected override void OnLoaded(RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        VolumePopup.Margin += new Thickness(0, 0, RootGrid.TranslatePoint(new Point(RootGrid.Bounds.Width, 0), MuteBtn).Value.X - (MuteBtn.Bounds.Width / 2 + VolumePopup.Bounds.Width / 2), 0);
+    }
 
     private void ShowControls()
     {
