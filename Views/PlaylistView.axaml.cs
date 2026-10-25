@@ -26,6 +26,8 @@ public partial class PlaylistView : UserControl
     public PlaylistView()
     {
         InitializeComponent();
+        if (Design.IsDesignMode) return;
+
         CloseBtn.Click += (_, _) => CloseRequested?.Invoke();
         ClearBtn.Click += (_, _) => _playlist.Clear();
         ShuffleBtn.Click += (_, _) => { _player.ToggleShuffle(); UpdateShuffle(_playlist.Shuffle); };

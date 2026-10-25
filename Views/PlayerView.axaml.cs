@@ -10,7 +10,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
-using MediaPlayer.Models;
 using MediaPlayer.Services;
 
 namespace MediaPlayer.Views;
@@ -40,6 +39,8 @@ public partial class PlayerView : UserControl
     public PlayerView()
     {
         InitializeComponent();
+        if (Design.IsDesignMode) return;
+
         VideoHost.IsVisible = _playlist.Items.Count > 0;
         VideoHost.RenderContextReady += _mpv.Reload;
         VideoHost.SetMpvHandle(_mpv.MpvHandle);

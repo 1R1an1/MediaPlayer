@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        if (Design.IsDesignMode) return;
 
         // --- MPVPLAYER-MPRIS EVENTS (UI) --- //
         _mpv.MPRISQuitRequested += Close;
