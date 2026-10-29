@@ -76,6 +76,12 @@ $SUDO chmod +x "$INSTALL_DIR/MediaPlayer"
 info "Creating symlink $BIN_LINK → $INSTALL_DIR/MediaPlayer..."
 $SUDO ln -sf "$INSTALL_DIR/MediaPlayer" "$BIN_LINK"
 
+# yt.sh
+info "Installing yt.sh..."
+$SUDO cp -f yt.sh "$INSTALL_DIR/yt.sh"
+$SUDO chmod +x "$INSTALL_DIR/yt.sh"
+$SUDO ln -sf "$INSTALL_DIR/yt.sh" "/usr/local/bin/yt.sh"
+
 # Ícono
 info "Installing icon..."
 $SUDO mkdir -p "$ICON_DIR"
@@ -103,4 +109,5 @@ $SUDO gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 info "Ready."
 info ""
 info "Installed successfully. Use it with the \`mp\` command or from the applications menu."
+info "yt.sh is also installed. Use it with the \`yt.sh\` command, the usage is in the README."
 info "If it doesn't appear in the menu, restart your session."
