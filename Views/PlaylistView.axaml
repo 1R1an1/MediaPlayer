@@ -91,33 +91,32 @@ Copyright (c) 2026 1R1an1 -->
                                         <BrushTransition Property="Background" Duration="0:0:0.3" Easing="QuadraticEaseOut" />
                                     </Transitions>
                                 </Border.Transitions>
-                                <Grid PointerReleased="Grid_PointerReleased" Tag="{Binding}">
+                                <Grid PointerReleased="Grid_PointerReleased" Tag="{Binding}" ColumnDefinitions="Auto,*,Auto">
                                     <Grid.Transitions>
                                         <Transitions>
                                             <BrushTransition Property="Background" Duration="0:0:0.3" Easing="QuadraticEaseOut" />
                                         </Transitions>
                                     </Grid.Transitions>
-                                    <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7">
-                                        <!-- Cover -->
-                                        <Border Height="45" MinWidth="80" ClipToBounds="True" Background="#222" CornerRadius="5" IsHitTestVisible="False">
-                                            <Grid Background="Transparent">
-                                                <Image Stretch="Uniform" Height="45" HorizontalAlignment="Center" Source="{Binding CoverMap}" />
-                                                <Border Padding="4,1" Background="#a000" CornerRadius="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,3,3">
-                                                    <TextBlock Text="{Binding DurationText}" FontSize="10" Foreground="#ddd"
-                                                               VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" />
-                                                </Border>
-                                            </Grid>
-                                        </Border>
 
-                                        <!-- Textos -->
-                                        <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center" IsHitTestVisible="False">
-                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
-                                        </StackPanel>
+                                    <!-- Cover -->
+                                    <Border Margin="7" Grid.Column="0" Height="45" MinWidth="80" ClipToBounds="True" Background="#222" CornerRadius="5" IsHitTestVisible="False">
+                                        <Grid Background="Transparent">
+                                            <Image Stretch="Uniform" Height="45" HorizontalAlignment="Center" Source="{Binding CoverMap}" />
+                                            <Border Padding="4,1" Background="#a000" CornerRadius="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,3,3">
+                                                <TextBlock Text="{Binding DurationText}" FontSize="10" Foreground="#ddd"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Textos -->
+                                    <StackPanel Grid.Column="1" Grid.ColumnSpan="3" Orientation="Vertical" Spacing="1" VerticalAlignment="Center" IsHitTestVisible="False">
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
                                     </StackPanel>
-                                    <StackPanel x:Name="HoverElements" Orientation="Horizontal" HorizontalAlignment="Right">
+
+                                    <StackPanel x:Name="HoverElements" Orientation="Horizontal" Grid.Column="2">
                                         <Button Classes="texticon bold" Content="✕" FontSize="16" Foreground="{StaticResource MutedBrush}"
-                                                x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click" />
+                                                Tag="{Binding}" Click="RemoveBtn_Click" />
 
                                         <Label CornerRadius="5" Cursor="SizeAll" sortable:Sortable.IsDragHandle="True" Content="⋮" Padding="0"
                                                Foreground="{StaticResource MutedBrush}" FontSize="16" Margin="5,5,10,5" Width="20" Background="Transparent"
