@@ -44,5 +44,10 @@ class Program
             .WithDeveloperTools()
 #endif
             .WithInterFont()
-            .LogToTrace();
+            .LogToTrace()
+            .With(new SkiaOptions
+            {
+                MaxGpuResourceSizeBytes = 256 * 1024 * 1024, // 256MB
+                UseStencilBuffers = true
+            });
 }

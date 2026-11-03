@@ -26,7 +26,11 @@ public partial class PlaylistView : UserControl
     public PlaylistView()
     {
         InitializeComponent();
-        if (Design.IsDesignMode) return;
+        if (Design.IsDesignMode)
+        {
+            List.ItemsSource = new PlaylistItem[] { new PlaylistItem("/test/123/video.mkv") { Artist = "123", Title = "Video test", IsCurrent = true, Duration = new TimeSpan(0, 2, 53) } };
+            return;
+        }
 
         CloseBtn.Click += (_, _) => CloseRequested?.Invoke();
         ClearBtn.Click += (_, _) => _playlist.Clear();
@@ -46,11 +50,10 @@ public partial class PlaylistView : UserControl
             await ShowOverlay(ShuffleIcon);
     }
 
-    private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void Grid_PointerReleased(object sender, Avalonia.Input.PointerReleasedEventArgs e)
     {
-        if (List.SelectedIndex < 0) return;
-        _playlist.SetCurrent(List.SelectedIndex);
-        List.SelectedIndex = -1;
+        if (e.InitialPressMouseButton != Avalonia.Input.MouseButton.Left) return;
+        _playlist.SetCurrent(_playlist.Items.IndexOf((sender as Grid).Tag as PlaylistItem));
     }
 
     private void RemoveBtn_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)

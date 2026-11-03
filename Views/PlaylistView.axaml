@@ -25,11 +25,9 @@ Copyright (c) 2026 1R1an1 -->
                     <GradientStop Color="Transparent" Offset="1"/>
                 </LinearGradientBrush>
             </Border.OpacityMask>
-            <ListBox x:Name="List" SelectionMode="Single" SelectionChanged="OnSelectionChanged"
-                     Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}"
-                     sortable:Sortable.Sortable="True">
-                <ListBox.Styles>
-                    <Style Selector="ScrollViewer">
+            <ScrollViewer>
+                <ScrollViewer.Styles>
+                    <Style>
                         <Setter Property="(Interaction.Behaviors)">
                             <BehaviorCollectionTemplate>
                                 <BehaviorCollection>
@@ -38,102 +36,109 @@ Copyright (c) 2026 1R1an1 -->
                             </BehaviorCollectionTemplate>
                         </Setter>
                     </Style>
-                    <Style Selector="ListBoxItem">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Template">
-                            <ControlTemplate>
-                                <ContentPresenter CornerRadius="5" Margin="4,2" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
-                            </ControlTemplate>
-                        </Setter>
-                    </Style>
-                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                        <Setter Property="Background" Value="Transparent"/>
-                    </Style>
-                    <Style Selector="ListBoxItem:pointerover Grid">
-                        <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
-                    </Style>
-                    <Style Selector="ListBoxItem Grid">
-                        <Setter Property="Background" Value="Transparent"/>
-                    </Style>
+                </ScrollViewer.Styles>
+                <ItemsControl x:Name="List" Padding="5" ItemsSource="{Binding Items, Source={x:Static l:App.Playlist}, Mode=OneWay}"
+                              sortable:Sortable.Sortable="True">
+                    <ItemsControl.Styles>
+                        <!-- Base styling -->
+                        <Style Selector="ItemsControl > ContentPresenter">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="CornerRadius" Value="5"/>
+                            <Setter Property="Margin" Value="4,2"/>
+                        </Style>
 
-                    <!-- Botón oculto por defecto -->
-                    <Style Selector="ListBoxItem Button /template/ ContentPresenter, ListBoxItem Label">
-                        <Setter Property="IsVisible" Value="False"/>
-                    </Style>
-                    <!-- Botón visible al pasar el mouse -->
-                    <Style Selector="ListBoxItem:pointerover Button /template/ ContentPresenter">
-                        <Setter Property="Background" Value="Transparent" />
-                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
-                        <Setter Property="IsVisible" Value="True"/>
-                    </Style>
-                    <Style Selector="ListBoxItem:pointerover Label">
-                        <Setter Property="Background" Value="Transparent" />
-                        <Setter Property="IsVisible" Value="True"/>
-                    </Style>
-                    <Style Selector="ListBoxItem:pointerover Label:pointerover">
-                        <Setter Property="Background" Value="{StaticResource HoverBrush}" />
-                    </Style>
-                    <!-- Hover del botón: se enciende -->
-                    <Style Selector="ListBoxItem:pointerover Button:pointerover /template/ ContentPresenter">
-                        <Setter Property="Background" Value="#2f55"/>
-                        <Setter Property="Foreground" Value="#faa"/>
-                    </Style>
+                        <!-- Hover state -->
+                        <Style Selector="ItemsControl > ContentPresenter:pointerover Grid">
+                            <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+                        </Style>
+                        <Style Selector="ItemsControl > ContentPresenter Grid">
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Style>
 
-                    <!-- Pressed: más fuerte -->
-                    <Style Selector="ListBoxItem:pointerover Button:pressed /template/ ContentPresenter">
-                        <Setter Property="Background" Value="#4f55"/>
-                    </Style>
-                </ListBox.Styles>
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-                <ListBox.ItemTemplate>
-                    <DataTemplate DataType="m:PlaylistItem">
-                        <Border ClipToBounds="True" sortable:Sortable.IsSortable="True" Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
-                            <Grid>
-                                <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7" ClipToBounds="True">
-                                    <!-- Cover -->
-                                    <Border Height="45" MinWidth="80" ClipToBounds="True" Background="#222" CornerRadius="5">
-                                        <Grid>
-                                            <Image Stretch="Uniform" Height="45" HorizontalAlignment="Center" Source="{Binding CoverMap}" />
-                                            <Border Padding="5,2" Background="#a000" CornerRadius="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,2,2">
-                                                <TextBlock Text="{Binding DurationText}" FontSize="10" Foreground="#ddd"
-                                                           VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" />
-                                            </Border>
-                                        </Grid>
-                                    </Border>
+                        <Style Selector="ItemsControl > ContentPresenter:pointerover StackPanel#HoverElements">
+                            <Setter Property="IsVisible" Value="True"/>
+                        </Style>
 
-                                    <!-- Textos -->
-                                    <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
+                        <Style Selector="ItemsControl > ContentPresenter StackPanel#HoverElements">
+                            <Setter Property="IsVisible" Value="False"/>
+                        </Style>
+
+                        <Style Selector="ItemsControl > ContentPresenter:pointerover Label:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="{StaticResource HoverBrush}"/>
+                        </Style>
+
+                        <!-- Button interactions -->
+                        <Style Selector="ItemsControl > ContentPresenter:pointerover Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#2f55"/>
+                            <Setter Property="Foreground" Value="#faa"/>
+                        </Style>
+
+                        <Style Selector="ItemsControl > ContentPresenter:pointerover Button:pressed /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#4f55"/>
+                            <Setter Property="Foreground" Value="#faa"/>
+                        </Style>
+                    </ItemsControl.Styles>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="m:PlaylistItem">
+                            <Border ClipToBounds="True" sortable:Sortable.IsSortable="True" Background="{Binding IsCurrent, Converter={StaticResource IsCurrentConverter}}" CornerRadius="5">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <BrushTransition Property="Background" Duration="0:0:0.3" Easing="QuadraticEaseOut" />
+                                    </Transitions>
+                                </Border.Transitions>
+                                <Grid PointerReleased="Grid_PointerReleased" Tag="{Binding}">
+                                    <Grid.Transitions>
+                                        <Transitions>
+                                            <BrushTransition Property="Background" Duration="0:0:0.3" Easing="QuadraticEaseOut" />
+                                        </Transitions>
+                                    </Grid.Transitions>
+                                    <StackPanel Orientation="Horizontal" Background="Transparent" Spacing="8" Margin="7">
+                                        <!-- Cover -->
+                                        <Border Height="45" MinWidth="80" ClipToBounds="True" Background="#222" CornerRadius="5" IsHitTestVisible="False">
+                                            <Grid Background="Transparent">
+                                                <Image Stretch="Uniform" Height="45" HorizontalAlignment="Center" Source="{Binding CoverMap}" />
+                                                <Border Padding="4,1" Background="#a000" CornerRadius="5" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,3,3">
+                                                    <TextBlock Text="{Binding DurationText}" FontSize="10" Foreground="#ddd"
+                                                               VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0" />
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Textos -->
+                                        <StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Center" IsHitTestVisible="False">
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Artist}" FontSize="12" Foreground="#aaa" />
+                                        </StackPanel>
                                     </StackPanel>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Classes="texticon bold" Content="✕" FontSize="16"
-                                            x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click" />
+                                    <StackPanel x:Name="HoverElements" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Classes="texticon bold" Content="✕" FontSize="16" Foreground="{StaticResource MutedBrush}"
+                                                x:Name="RemoveBtn" Tag="{Binding}" Click="RemoveBtn_Click" />
 
-                                    <Label CornerRadius="5" Cursor="SizeAll" sortable:Sortable.IsDragHandle="True" Content="⋮" Padding="0"
-                                           Foreground="{StaticResource MutedBrush}" FontSize="16" Margin="5,5,10,5" Width="20"
-                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                                        <Label CornerRadius="5" Cursor="SizeAll" sortable:Sortable.IsDragHandle="True" Content="⋮" Padding="0"
+                                               Foreground="{StaticResource MutedBrush}" FontSize="16" Margin="5,5,10,5" Width="20" Background="Transparent"
+                                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Border>
 
         <!-- Footer: título + 2 icons alineados a la derecha -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,5,Auto" Margin="14,3,8,2">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="14,3,8,2">
             <TextBlock Grid.Column="0" Text="Playlist"
                        FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold"
                        Foreground="{StaticResource MutedBrush}" Margin="0,0,0,2"
                        VerticalAlignment="Center"/>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Button Classes="icon" x:Name="ShuffleBtn" ToolTip.Tip="Shuffle (S)">
                     <Grid HorizontalAlignment="Center">
                         <skp:Svg x:Name="ShuffleIcon" Path="avares://MediaPlayer/Svgs/Shuffle.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>

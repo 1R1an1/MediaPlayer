@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: MPL-2.0
-  Copyright (c) 2026 1R1an1 -->
+Copyright (c) 2026 1R1an1 -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -135,24 +135,6 @@
     </Style>
     <Style Selector="ScrollBar /template/ Thumb:pointerover">
         <Setter Property="Background" Value="{StaticResource PressedBrush}" />
-    </Style>
-
-    <!-- ListBox (playlist) -->
-    <Style Selector="ListBox">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="ListBoxItem">
-        <Setter Property="Padding" Value="8" />
-        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
-        <Setter Property="CornerRadius" Value="7" />
-    </Style>
-    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource HoverBrush}" />
-    </Style>
-    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource PressedBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
     </Style>
 
     <!-- ContextMenu -->
