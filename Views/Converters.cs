@@ -11,7 +11,7 @@ namespace MediaPlayer.Views;
 
 public class IsCurrentConverter : IValueConverter
 {
-    private static SolidColorBrush pressed = Application.Current.FindResource("PressedBrush") as SolidColorBrush;
+    private static SolidColorBrush pressed = Application.Current.FindResource("PressedBrushSolid") as SolidColorBrush;
     private static SolidColorBrush back = Application.Current.FindResource("BackgroundBrush") as SolidColorBrush;
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => (bool)value ? pressed : back;

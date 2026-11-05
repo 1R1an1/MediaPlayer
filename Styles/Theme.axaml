@@ -33,6 +33,7 @@ Copyright (c) 2026 1R1an1 -->
 
     <SolidColorBrush x:Key="HoverBrush"              Color="{StaticResource HoverColor}" />
     <SolidColorBrush x:Key="PressedBrush"            Color="{StaticResource PressedColor}" />
+    <SolidColorBrush x:Key="PressedBrushSolid"            Color="#f555" />
     <SolidColorBrush x:Key="DisabledBrush"           Color="{StaticResource DisabledColor}" />
 
     <SolidColorBrush x:Key="TrackEmptyBrush"         Color="{StaticResource TrackEmptyColor}" />
