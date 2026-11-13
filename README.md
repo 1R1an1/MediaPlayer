@@ -27,7 +27,7 @@ Dark-themed controls over the player, desktop integration via MPRIS2 (GNOME, KDE
 ## Supported formats
 
 - Video: `.mp4` `.mkv` `.webm` `.avi` `.mov` `.flv` `.wmv` `.mpg` `.mpeg` `.m4v` `.ts`
-- Audio: `.mp3` `.flac`
+- Audio: `.mp3` `.flac` `.opus`
 
 ---
 

@@ -17,7 +17,7 @@ namespace MediaPlayer.Services;
 public static class MediaUtils
 {
     public static readonly string[] SupportedExtensions =
-        [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac"];
+        [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac", ".opus"];
 
     public static bool IsMediaFile(string path)
         => Array.IndexOf(SupportedExtensions, Path.GetExtension(path).ToLowerInvariant()) >= 0;
@@ -114,31 +114,51 @@ public static class MediaUtils
 
             // Cover con ffmpeg
             string tempDir = Directory.CreateTempSubdirectory("mpv_probe_").FullName;
-            string ext = Path.GetExtension(path).ToLowerInvariant();
 
-            var psi = new ProcessStartInfo
+            var extractProbe = Process.Start(new ProcessStartInfo
+            {
+                FileName = "ffprobe",
+                Arguments = $"-v error -show_entries stream=index,codec_type,codec_name:stream_tags=mimetype -of default=noprint_wrappers=1 \"{path}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            });
+            var extractOutput = await extractProbe.StandardOutput.ReadToEndAsync();
+            await extractProbe.WaitForExitAsync();
+
+            int index = -1;
+            string extencion = null;
+            bool isVideo = false;
+
+            foreach (var stream in extractOutput.Split("index=", StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] lines = stream.Replace("\r", "").Split('\n');
+                string mime = lines.FirstOrDefault(x => x.StartsWith("TAG:mimetype=image/"))?["TAG:mimetype=image/".Length..];
+                string codec = lines.FirstOrDefault(x => x.StartsWith("codec_name="))?["codec_name=".Length..];
+                string type = lines.FirstOrDefault(x => x.StartsWith("codec_type="))?["codec_type=".Length..];
+
+                if (mime != null || (type == "video" && codec is "png" or "mjpeg" or "webp" or "bmp" or "tiff"))
+                {
+                    index = int.Parse(lines[0]);
+                    extencion = $".{(mime ?? codec).Replace("mjpeg", "jpg")}";
+                    isVideo = type == "video";
+                    break;
+                }
+            }
+
+            string coverFile = Path.Combine(tempDir, $"cover{extencion ?? ".jpg"}");
+            extractProbe = Process.Start(new ProcessStartInfo
             {
                 FileName = "ffmpeg",
+                Arguments = index != -1
+                    ? isVideo
+                        ? $"-i \"{path}\" -map 0:{index} -frames:v 1 \"{coverFile}\" -y -loglevel quiet"
+                        : $"-dump_attachment:{index} \"{coverFile}\" -i \"{path}\" -y -loglevel quiet"
+                    : $"-i \"{path}\" -map 0:v:0 -frames:v 1 -y -loglevel quiet \"{coverFile}\"",
                 UseShellExecute = false,
-                RedirectStandardInput = true,
-                CreateNoWindow = true,
-                WorkingDirectory = tempDir,
-            };
-
-            string coverFile;
-            if (ext == ".mkv")
-            {
-                psi.Arguments = $"-dump_attachment:t \"\" -i \"{path}\" -y -loglevel quiet";
-                coverFile = Path.Combine(tempDir, "cover.webp");
-            }
-            else
-            {
-                psi.Arguments = $"-i \"{path}\" -map 0:v:0 -c:v copy -y -loglevel quiet cover.jpg";
-                coverFile = Path.Combine(tempDir, "cover.jpg");
-            }
-
-            var extract = Process.Start(psi);
-            await extract.WaitForExitAsync();
+                CreateNoWindow = true
+            });
+            await extractProbe.WaitForExitAsync();
 
             if (File.Exists(coverFile))
             {
