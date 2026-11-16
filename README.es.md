@@ -51,11 +51,13 @@ curl -fsSL https://raw.githubusercontent.com/1R1an1/MediaPlayer/master/setup | b
 Uso:
 
 ```bash
-mp                              # Abre la GUI sin archivos
-mp video.mkv ~/carpeta          # Abre la GUI con uno o más archivos/carpetas
-mp --nogui video.mkv            # Fuerza la TUI basica en lugar de la GUI
-mp --tui video.mkv              # Utiliza la TUI completa en lugar de la GUI
+mp                              # Abre la GUI
+mp video.mkv ~/carpeta          # Abre la app con los archivos/carpetas seleccionados
+mp --nogui                      # Utiliza la TUI basica en lugar de la GUI
+mp --tui                        # Utiliza la TUI completa en lugar de la GUI
 ```
+
+Si no se pasan archivos/carpetas por argumentos, se restaura el último estado utilizado (últimos archivos abiertos, posición de reproducción, volumen, etc).
 
 La TUI basica se activa automáticamente si no hay un `DISPLAY` disponible (sesiones SSH, terminales headless).
 
@@ -91,9 +93,9 @@ sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr
 
 ## Descarga de videos y música
 
-MediaPlayer usa las miniaturas embebidas en los archivos para mostrar la portada en la playlist y en MPRIS. Para audio (`.mp3` y `.flac`) la miniatura funciona de forma universal, pero para video (`.mkv`) requiere un formato específico. El script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) usa `yt-dlp` con las opciones correctas para que las miniaturas y los metadatos queden embebidos con el formato compatible de la app.
+MediaPlayer extrae la miniatura de cualquier archivo de video o música. Para mayor comodidad, el repositorio incluye el script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh), que usa `yt-dlp` para descargar videos y música con la miniatura y los metadatos ya embebidos.
 
-Uso del script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh)
+Uso del script [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh):
 
 ```bash
 ./yt.sh video <URL>              # Descarga video en .mkv con miniatura y metadatos embebidos

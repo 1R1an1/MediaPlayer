@@ -51,11 +51,13 @@ curl -fsSL https://raw.githubusercontent.com/1R1an1/MediaPlayer/master/setup | b
 Usage:
 
 ```bash
-mp                              # Opens the GUI with no files
-mp video.mkv ~/folder           # Opens the GUI with one or more files/folders
-mp --nogui video.mkv            # Forces the basic TUI instead of the GUI
-mp --tui video.mkv              # Uses the full TUI instead of the GUI
+mp                              # Opens the GUI
+mp video.mkv ~/folder           # Opens the app with selected files/folders
+mp --nogui                      # Uses the basic TUI instead of the GUI
+mp --tui                        # Uses the full TUI instead of the GUI
 ```
+
+If no files/folders are passed, the last used state is restored (last opened files, playback position, volume, etc).
 
 The basic TUI is automatically activated if no `DISPLAY` is available (SSH sessions, headless terminals).
 
@@ -91,7 +93,7 @@ sudo ln -sf $(realpath ./bin/Release/net10.0/linux-x64/publish/MediaPlayer) /usr
 
 ## Video and music download
 
-MediaPlayer uses the thumbnails embedded in files to display the cover art in the playlist and in MPRIS. For audio (`.mp3` and `.flac`) the thumbnail works universally, but for video (`.mkv`) it requires a specific format. The [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) script uses `yt-dlp` with the correct options so that thumbnails and metadata are embedded in the app's compatible format.
+MediaPlayer extracts the thumbnail from any video or music file. For convenience, the repository includes the [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) script, which uses `yt-dlp` to download videos and music with the thumbnail and metadata already embedded.
 
 Usage of the [`yt.sh`](https://github.com/1R1an1/MediaPlayer/blob/master/yt.sh) script:
 
