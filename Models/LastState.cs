@@ -41,11 +41,12 @@ public class LastState
     [JsonIgnore]
     public PlayerState Player
     {
-        get => new PlayerState { Created = _player.Created, PositionSec = _playlist.PositionSec, Volume = _player.Volume };
+        get => new PlayerState { Created = _player.Created, PositionSec = _playlist.PositionSec, Volume = _player.Volume, AutomaticReproduction = _player.AutomaticReproduction };
         set
         {
             _player.Created = value.Created;
             _player.Volume = value.Volume;
+            _player.AutomaticReproduction = value.AutomaticReproduction;
             _playlist.PositionSec = value.PositionSec;
         }
     }

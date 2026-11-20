@@ -53,6 +53,7 @@ public partial class PlayerView : UserControl
         AudioBtn.Click += (_, _) => ShowAudioMenu();
         LoopBtn.Click += (_, _) => _player.CycleLoopMode();
         FullScreenBtn.Click += (_, _) => ToggleFullScreen?.Invoke();
+        tgbContinue.IsCheckedChanged += (_, _) => _player.AutomaticReproduction = tgbContinue.IsChecked ?? false;
 
         RootGrid.PointerMoved += OnRootPointerMoved;
         RootGrid.PointerExited += (_, _) => HideControls();
@@ -82,7 +83,7 @@ public partial class PlayerView : UserControl
         VolumeSlider.AddHandler(PointerPressedEvent, (_, _) => { _canHide = false; _canHideVolume = false; }, RoutingStrategies.Tunnel, handledEventsToo: true);
         VolumeSlider.AddHandler(PointerReleasedEvent, (_, _) => { _canHide = true; _canHideVolume = true; }, RoutingStrategies.Tunnel, handledEventsToo: true);
 
-        foreach (var btn in new[] { PlayPauseBtn, PrevBtn, NextBtn, LoopBtn, AudioBtn, MuteBtn })
+        foreach (var btn in new[] { PlayPauseBtn, PrevBtn, NextBtn, LoopBtn, AudioBtn, MuteBtn, tgbContinue })
             btn.AddHandler(KeyUpEvent, (_, e) => { if (e.Key == Key.Space) e.Handled = true; }, RoutingStrategies.Tunnel, handledEventsToo: true);
 
         // --- TIMER --- //
@@ -93,6 +94,7 @@ public partial class PlayerView : UserControl
 
         VolumeSlider.Value = _mpv.Volume;
         SeekBar.Value = _mpv.PositionSec;
+        tgbContinue.IsChecked = _player.AutomaticReproduction;
         if (_playlist.LoopMode != LoopMode.None)
             SetLoopModeBtn(_playlist.LoopMode);
     }

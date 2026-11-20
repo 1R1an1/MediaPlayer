@@ -12,10 +12,11 @@ public class Player
 {
     private MpvPlayer _mpv => App.Mpv;
     private PlaylistService _playlist => App.Playlist;
+    public bool AutomaticReproduction { get; set; } = true;
 
     public PlayerState PlayerState
     {
-        get => new() { Created = true, Volume = _mpv.Volume, PositionSec = _mpv.PositionSec };
+        get => new() { Created = true, Volume = _mpv.Volume, PositionSec = _mpv.PositionSec, AutomaticReproduction = AutomaticReproduction };
         set
         {
             if (!value.Created) return;
@@ -27,6 +28,7 @@ public class Player
                 if (_mpv.PositionSec == value.PositionSec)
                     _mpv.PositionChanged -= pos;
             };
+            AutomaticReproduction = value.AutomaticReproduction;
             _mpv.PositionChanged += pos;
             _mpv.SeekAbsolute(value.PositionSec);
             _mpv.SetVolume01(value.Volume);
@@ -77,7 +79,7 @@ public class Player
             _mpv.SeekAbsolute(0);
             _mpv.Play();
         }
-        else { Next(); _mpv.Play(); }
+        else if (AutomaticReproduction) { Next(); _mpv.Play(); }
     }
 
     // Si pasaron más de 5s, vuelve al inicio; sino, pista anterior.

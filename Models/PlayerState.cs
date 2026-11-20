@@ -7,6 +7,7 @@ public record struct PlayerState
     public bool Created;
     public double Volume;
     public double PositionSec;
+    public bool AutomaticReproduction;
 }
 
 
@@ -14,4 +15,5 @@ public class PlayerPublicState
 {
     public bool Created = false;
     public double Volume;
+    public bool AutomaticReproduction = true;
 }

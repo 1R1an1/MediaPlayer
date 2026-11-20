@@ -153,6 +153,8 @@ Copyright (c) 2026 1R1an1 -->
                             <skp:Svg x:Name="MuteIcon" Path="avares://MediaPlayer/Svgs/VolumeMute.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5" IsVisible="False"/>
                         </Grid>
                     </Button>
+                    <ToggleButton x:Name="tgbContinue" IsChecked="False" Classes="anim-switch" Margin="2,0"
+                                  ToolTip.Tip="{Binding IsChecked, RelativeSource={RelativeSource Self}, Converter={StaticResource AutomaticReproductionTooltip}}" />
                     <Button Classes="icon" x:Name="LoopBtn" ToolTip.Tip="Loop (L)">
                         <Grid HorizontalAlignment="Center">
                             <skp:Svg x:Name="LoopIcon" Path="avares://MediaPlayer/Svgs/Loop.svg" CurrentColor="{StaticResource MutedColor}" Width="19.5"/>

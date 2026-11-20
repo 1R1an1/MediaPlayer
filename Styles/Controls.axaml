@@ -156,4 +156,106 @@ Copyright (c) 2026 1R1an1 -->
         <Setter Property="Background" Value="{StaticResource HoverBrush}" />
     </Style>
 
+    <!-- ToggleButton -->
+    <Style Selector="ToggleButton.anim-switch">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="PART_Track"
+                        Width="39"
+                        Height="18"
+                        CornerRadius="11"
+                        Padding="3">
+                    <Border.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="0:0:0.25" />
+                        </Transitions>
+                    </Border.Transitions>
+
+                    <Border x:Name="PART_Thumb"
+                            Width="15"
+                            Height="12"
+                            CornerRadius="8"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            RenderTransform="translate(0px,0px)">
+                        <Border.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Property="RenderTransform"
+                                                               Duration="0:0:0.25"
+                                                               Easing="CubicEaseOut" />
+                                <BrushTransition Property="Background" Duration="0:0:0.25" />
+                            </Transitions>
+                        </Border.Transitions>
+
+                        <Grid>
+                            <Path x:Name="PART_PlayIcon"
+                                  Width="6"
+                                  Height="6"
+                                  Stretch="Uniform"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Data="M 0,0 L 6,3 L 0,6 Z">
+                                <Path.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                        <BrushTransition Property="Fill" Duration="0:0:0.25" />
+                                    </Transitions>
+                                </Path.Transitions>
+                            </Path>
+
+                            <Path x:Name="PART_PauseIcon"
+                                  Width="6"
+                                  Height="6"
+                                  Stretch="Uniform"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Data="M 0,0 H 2 V 6 H 0 Z M 4,0 H 6 V 6 H 4 Z">
+                                <Path.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                        <BrushTransition Property="Fill" Duration="0:0:0.25" />
+                                    </Transitions>
+                                </Path.Transitions>
+                            </Path>
+                        </Grid>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Estado desactivado -->
+    <Style Selector="ToggleButton.anim-switch /template/ Border#PART_Track">
+        <Setter Property="Background" Value="#88424242" />
+    </Style>
+    <Style Selector="ToggleButton.anim-switch /template/ Border#PART_Thumb">
+        <Setter Property="Background" Value="#dfff" />
+    </Style>
+    <Style Selector="ToggleButton.anim-switch /template/ Path#PART_PlayIcon">
+        <Setter Property="Fill" Value="#424242" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="ToggleButton.anim-switch /template/ Path#PART_PauseIcon">
+        <Setter Property="Fill" Value="#ddd" />
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+
+    <!-- Estado activado -->
+    <Style Selector="ToggleButton.anim-switch:checked /template/ Border#PART_Track">
+        <Setter Property="Background" Value="#cfff" />
+    </Style>
+    <Style Selector="ToggleButton.anim-switch:checked /template/ Border#PART_Thumb">
+        <Setter Property="RenderTransform" Value="translate(18px,0px)" />
+        <Setter Property="Background" Value="#424242" />
+    </Style>
+    <Style Selector="ToggleButton.anim-switch:checked /template/ Path#PART_PlayIcon">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.anim-switch:checked /template/ Path#PART_PauseIcon">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
 </Styles>
