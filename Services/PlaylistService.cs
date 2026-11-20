@@ -232,9 +232,13 @@ public class PlaylistService
             {
                 if (index != 0) _items.Move(index, 0);
                 CurrentIndex = 0;
+                lastLoaded = 0;
             }
             else
+            {
                 CurrentIndex = index;
+                lastLoaded = index;
+            }
         }
     }
 
