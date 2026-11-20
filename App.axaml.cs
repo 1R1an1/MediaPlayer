@@ -48,6 +48,7 @@ public partial class App : Application
 
     public static void Init(string[] args)
     {
+        LibC.SilenceStdErr();
         bool haveArgs = args != null && args.Length > 0;
         StartDiskThings(haveArgs);
 

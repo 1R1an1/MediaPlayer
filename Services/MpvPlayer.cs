@@ -95,7 +95,7 @@ public class MpvPlayer : MprisSource
         // vo=libmpv: mpv no crea ventana, render via render API.
         SetOptionString("vo", "libmpv");
         // Hardware decoding en hardware dedicado (NVDEC/VAAPI), no GPU 3D.
-        SetOptionString("hwdec", "vaapis");
+        SetOptionString("hwdec", "auto");
         // Scalers livianos para bajar carga de GPU.
         SetOptionString("scale", "bilinear");
         SetOptionString("cscale", "bilinear");
@@ -114,6 +114,7 @@ public class MpvPlayer : MprisSource
         SetOptionString("input-cursor", "no");
         SetOptionString("config", "no");
         SetOptionString("terminal", "no");
+        SetOptionString("msg-level", "all=no");
         SetOptionString("force-window", "no");
         // SetOptionString("audio-display", "no");
         SetOptionString("keep-open", "yes");
