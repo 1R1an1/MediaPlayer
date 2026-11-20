@@ -26,8 +26,8 @@ Controles en tema oscuro sobre el reproductor, integraci√≥n con el escritorio v√
 
 ## Formatos soportados
 
-- Video: `.mp4` `.mkv` `.webm` `.avi` `.mov` `.flv` `.wmv` `.mpg` `.mpeg` `.m4v` `.ts`
-- Audio: `.mp3` `.flac` `.opus`
+- Video: `.mp4` `.mkv` `.webm` `.avi` `.mov` `.m4v` `.wmv`
+- Audio: `.m4a` `.m4b` `.mka` `.wma` `.mp3` `.flac` `.ogg` `.opus`
 
 ---
 

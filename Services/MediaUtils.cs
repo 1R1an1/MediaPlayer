@@ -17,7 +17,8 @@ namespace MediaPlayer.Services;
 public static class MediaUtils
 {
     public static readonly string[] SupportedExtensions =
-        [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".mpg", ".mpeg", ".m4v", ".ts", ".mp3", ".flac", ".opus"];
+        [".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4v", ".wmv",
+         ".m4a", ".m4b", ".mka", ".wma", ".mp3", ".flac", ".ogg", ".opus"];
 
     public static bool IsMediaFile(string path)
         => Array.IndexOf(SupportedExtensions, Path.GetExtension(path).ToLowerInvariant()) >= 0;
@@ -88,7 +89,7 @@ public static class MediaUtils
                 var probe = Process.Start(new ProcessStartInfo
                 {
                     FileName = "ffprobe",
-                    Arguments = $"-v quiet -show_entries format=duration:format_tags=artist -of default=noprint_wrappers=1:nokey=1 \"{path}\"",
+                    Arguments = $"-v quiet -show_entries format=duration:format_tags=artist:stream_tags=artist -of default=noprint_wrappers=1:nokey=1 \"{path}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardInput = true,
                     UseShellExecute = false,
@@ -107,8 +108,14 @@ public static class MediaUtils
                 }
                 else if (lines.Length == 2)
                 {
-                    result.Duration = TimeSpan.FromSeconds(double.Parse(lines[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture));
-                    result.Artist = lines[1].Trim();
+                    if (!double.TryParse(lines[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
+                    {
+                        d = double.Parse(lines[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture);
+                        result.Artist = lines[0].Trim();
+                    }
+                    else
+                        result.Artist = lines[1].Trim();
+                    result.Duration = TimeSpan.FromSeconds(d);
                 }
             }
 
