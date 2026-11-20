@@ -39,6 +39,7 @@ public class Player
         _mpv.MPRISPrevRequested += Preview;
         _mpv.MPRISVolumeChanged += _mpv.SetVolume01;
         _mpv.MPRISShuffleChanged += s => _playlist.Shuffle = s;
+        _mpv.EndReached += EndReached;
 
         _playlist.ShuffleChanged += _ => UpdateMprisState();
         _playlist.LoopModeChanged += _ => UpdateMprisState();
@@ -68,6 +69,16 @@ public class Player
     }
 
     public void Next() => _playlist.Advance();
+
+    public void EndReached()
+    {
+        if (_playlist.LoopMode == LoopMode.Track)
+        {
+            _mpv.SeekAbsolute(0);
+            _mpv.Play();
+        }
+        else { Next(); _mpv.Play(); }
+    }
 
     // Si pasaron más de 5s, vuelve al inicio; sino, pista anterior.
     public void Preview()

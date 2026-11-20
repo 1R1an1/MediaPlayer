@@ -101,18 +101,7 @@ public class PlaylistService
     }
 
     public PlaylistService()
-    {
-        _mpv.MPRISLoopChanged += SetLoopMode;
-        _mpv.EndReached += () =>
-        {
-            if (LoopMode == LoopMode.Track)
-            {
-                _mpv.SeekAbsolute(0);
-                _mpv.Play();
-            }
-            else Advance();
-        };
-    }
+        => _mpv.MPRISLoopChanged += SetLoopMode;
 
     public void Add(params IEnumerable<string> paths)
     {
