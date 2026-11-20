@@ -16,11 +16,11 @@ Controles en tema oscuro sobre el reproductor, integraci√≥n con el escritorio v√
 
 ### Reproductor
 
-![Reproductor](screenshots/player.png)
+![Reproductor](screenshots/player.jpg)
 
 ### Playlist
 
-![Playlist](screenshots/playlist.png)
+![Playlist](screenshots/playlist.jpg)
 
 ---
 

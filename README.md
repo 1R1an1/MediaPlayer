@@ -16,11 +16,11 @@ Dark-themed controls over the player, desktop integration via MPRIS2 (GNOME, KDE
 
 ### Player
 
-![Player](screenshots/player.png)
+![Player](screenshots/player.jpg)
 
 ### Playlist
 
-![Playlist](screenshots/playlist.png)
+![Playlist](screenshots/playlist.jpg)
 
 ---
 
